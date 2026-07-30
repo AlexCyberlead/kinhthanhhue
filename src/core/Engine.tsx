@@ -30,7 +30,11 @@ export function Engine({ children }: EngineProps) {
         far: 8000,
         position: [0, 80, 220],
       }}
-      onCreated={({ gl, scene }) => {
+      onCreated={(state) => {
+        const { gl, scene } = state
+        if (import.meta.env.DEV) {
+          ;(window as unknown as Record<string, unknown>).__r3f = state
+        }
         gl.shadowMap.enabled = true
         gl.shadowMap.type = THREE.PCFSoftShadowMap
         // Fallback until SkySystem mounts; sky syncs fog/background via lights frame

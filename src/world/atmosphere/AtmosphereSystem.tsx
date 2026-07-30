@@ -16,9 +16,9 @@ import { GodRaySprites } from './GodRaySprites'
  */
 function morningMistFactor(timeOfDay: number): number {
   const t = ((timeOfDay % 24) + 24) % 24
-  if (t >= 4.5 && t < 5.5) return THREE.MathUtils.smoothstep(4.5, 5.5, t)
+  if (t >= 4.5 && t < 5.5) return THREE.MathUtils.smoothstep(t, 4.5, 5.5)
   if (t >= 5.5 && t <= 7.5) return 1
-  if (t > 7.5 && t < 9) return 1 - THREE.MathUtils.smoothstep(7.5, 9, t)
+  if (t > 7.5 && t < 9) return 1 - THREE.MathUtils.smoothstep(t, 7.5, 9)
   return 0
 }
 

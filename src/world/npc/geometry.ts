@@ -4,20 +4,22 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 /**
  * Vertex `color` = region weights (R torso, G legs, B skin).
  * Vertex `uv` = local 0–1 for atlas cell sampling on torso.
- * Vertex `uv2.x` = 1 → hat cone (hide via aHasHat); `uv2.y` = 1 → hair/khăn.
+ *
+ * Hat/hair are encoded in `color` itself rather than a separate attribute:
+ * hat = (1,1,0), hair = (0,1,1). A dedicated attribute would push the material
+ * past the 16-slot MAX_VERTEX_ATTRIBS ceiling (instanceMatrix alone eats 4).
  */
 function paintRegion(
   geo: THREE.BufferGeometry,
   r: number,
   g: number,
   b: number,
-  opts: { hat?: boolean; hair?: boolean; atlas?: boolean } = {},
+  opts: { atlas?: boolean } = {},
 ): THREE.BufferGeometry {
   const count = geo.attributes.position.count
   const pos = geo.attributes.position
   const colors = new Float32Array(count * 3)
   const uvs = new Float32Array(count * 2)
-  const uv2 = new Float32Array(count * 2)
 
   let minY = Infinity
   let maxY = -Infinity
@@ -45,12 +47,9 @@ function paintRegion(
       uvs[i * 2] = 0.5
       uvs[i * 2 + 1] = 0.5
     }
-    uv2[i * 2] = opts.hat ? 1 : 0
-    uv2[i * 2 + 1] = opts.hair ? 1 : 0
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-  geo.setAttribute('uv2', new THREE.BufferAttribute(uv2, 2))
   return geo
 }
 
@@ -77,12 +76,12 @@ export function createNpcGeometry(): THREE.BufferGeometry {
 
   const hat = new THREE.ConeGeometry(0.28, 0.16, 8)
   hat.translate(0, 1.46, 0)
-  paintRegion(hat, 1, 1, 0, { hat: true })
+  paintRegion(hat, 1, 1, 0)
 
   const hair = new THREE.SphereGeometry(0.12, 6, 4)
   hair.scale(1, 0.55, 1)
   hair.translate(0, 1.38, 0)
-  paintRegion(hair, 1, 1, 0, { hair: true })
+  paintRegion(hair, 0, 1, 1)
 
   const merged = mergeGeometries([legs, torso, shoulders, head, hair, hat], false)
   legs.dispose()

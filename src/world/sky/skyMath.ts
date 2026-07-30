@@ -23,7 +23,7 @@ export function moonDirectionFromTime(timeOfDay: number, out = _moon): THREE.Vec
 /** 1 = full day, 0 = full night. Soft edges around sunrise/sunset. */
 export function dayFactor(timeOfDay: number): number {
   const y = sunDirectionFromTime(timeOfDay).y
-  return THREE.MathUtils.smoothstep(-0.05, 0.22, y)
+  return THREE.MathUtils.smoothstep(y, -0.05, 0.22)
 }
 
 export function isNight(timeOfDay: number): boolean {
@@ -118,7 +118,7 @@ export function computeSkyPalette(
     ? THREE.MathUtils.lerp(0.08, 0.22, day)
     : THREE.MathUtils.lerp(0.15, 0.72, day)
 
-  const starOpacity = THREE.MathUtils.smoothstep(0.45, 0.05, day) * (raining ? 0.25 : 1)
+  const starOpacity = (1 - THREE.MathUtils.smoothstep(day, 0.05, 0.45)) * (raining ? 0.25 : 1)
 
   const turbidity = raining ? 12 : THREE.MathUtils.lerp(2, 8, twilight)
 

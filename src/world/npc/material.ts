@@ -54,9 +54,12 @@ varying vec2 vAtlasUv;
   float animT = aAnim.z;
   float t = uTime + phase;
 
-  float isHat = step(0.5, uv2.x);
-  float isHair = step(0.5, uv2.y);
-  float isTorso = step(0.5, color.r) * (1.0 - step(0.5, color.g)) * (1.0 - isHat) * (1.0 - isHair);
+  float cr = step(0.5, color.r);
+  float cg = step(0.5, color.g);
+  float cb = step(0.5, color.b);
+  float isHat = cr * cg;
+  float isHair = cg * cb;
+  float isTorso = cr * (1.0 - cg) * (1.0 - isHat) * (1.0 - isHair);
 
   vec3 baseCol = aPrimary * color.r + aSecondary * color.g + aSkin * color.b;
   if (isHat > 0.5) {
@@ -118,7 +121,7 @@ varying vec2 vAtlasUv;
     mat.userData.shader = shader
   }
 
-  mat.customProgramCacheKey = () => `npc-instanced-v3-atlas${atlas ? 1 : 0}`
+  mat.customProgramCacheKey = () => `npc-instanced-v4-atlas${atlas ? 1 : 0}`
   return mat
 }
 
