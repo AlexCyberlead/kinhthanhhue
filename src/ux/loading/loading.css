@@ -1,0 +1,64 @@
+@keyframes kth-ink-draw {
+  from {
+    stroke-dashoffset: 120;
+    opacity: 0.35;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0.85;
+  }
+}
+
+@keyframes kth-seal-breathe {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes kth-bar-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@keyframes kth-tip-fade {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.kth-loading-bar-indeterminate {
+  animation: kth-bar-indeterminate 1.45s ease-in-out infinite;
+}
+
+.kth-loading-tip {
+  animation: kth-tip-fade 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kth-loading-bar-indeterminate,
+  .kth-loading-tip {
+    animation: none !important;
+  }
+}

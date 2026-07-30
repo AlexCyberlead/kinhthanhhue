@@ -1,54 +1,58 @@
 import { useMemo } from 'react'
-import { OrbitControls } from '@react-three/drei'
-import { WORLD } from '../data/worldConfig'
-import { listMonuments } from '../registry/monuments'
-import { getMaterial } from '../core/materials/MaterialLibrary'
-import { buildGate } from '../core/geometry/kit'
+import { bootstrapMonuments } from '../registry/registerAll'
+import { WaterSystem } from '../world/water'
+import { TerrainSystem } from '../world/terrain'
+import { CitadelWalls } from '../world/citadel'
+import { SkySystem } from '../world/sky'
+import { VegetationSystem } from '../world/vegetation'
+import { GroundworkSystem } from '../world/groundwork'
+import { ImperialWalls } from '../monuments/imperial'
+import { TuCamWalls } from '../monuments/tucam'
+import { AudioSystem } from '../world/audio'
+import { AtmosphereSystem } from '../world/atmosphere'
+import { PostFX } from '../world/postfx'
+import { NpcSystem } from '../world/npc'
+import { PropsSystem } from '../world/props'
+import { PoiHotspots } from '../ux/poi'
+import { CameraController } from '../ux/camera'
+import { TourController } from '../ux/tour'
 
 /**
- * Bootstrap world: ground plane + placeholder Ngọ Môn from architecture kit.
- * Wave agents will replace/extend this scene.
+ * World scene — orchestrator wires wave systems + registered monuments.
  */
 export function WorldScene() {
-  const groundMat = useMemo(() => getMaterial('co_xanh'), [])
-  const plazaMat = useMemo(() => getMaterial('gach_bat_trang'), [])
-  const ngoMon = useMemo(() => {
-    const g = buildGate({ type: 'ngo-mon', lod: 1 })
-    const [x, y, z] = WORLD.landmarks.ngoMon
-    g.position.set(x, y, z)
-    return g
+  const monumentGroups = useMemo(() => {
+    return bootstrapMonuments().map((m) => {
+      const group = m.build(1)
+      group.position.set(...m.anchor)
+      group.rotation.y = m.rotationY
+      return { id: m.id, group }
+    })
   }, [])
-
-  const monuments = listMonuments()
 
   return (
     <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0, 0]}>
-        <planeGeometry args={[4000, 4000]} />
-        <primitive object={groundMat} attach="material" />
-      </mesh>
+      <SkySystem />
+      <TerrainSystem />
+      <CitadelWalls lod={1} />
+      <ImperialWalls lod={1} />
+      <TuCamWalls lod={1} />
+      <WaterSystem />
+      <GroundworkSystem lod={1} />
+      <VegetationSystem density={1} />
+      <NpcSystem count={300} />
+      <PropsSystem lod={1} />
+      <AtmosphereSystem />
+      <AudioSystem />
+      <PostFX />
+      <PoiHotspots />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, 0.02, 0]}>
-        <planeGeometry args={[80, 120]} />
-        <primitive object={plazaMat} attach="material" />
-      </mesh>
+      {monumentGroups.map(({ id, group }) => (
+        <primitive key={id} object={group} />
+      ))}
 
-      <primitive object={ngoMon} />
-
-      {monuments.map((m) => {
-        const group = m.build(1)
-        group.position.set(...m.anchor)
-        group.rotation.y = m.rotationY
-        return <primitive key={m.id} object={group} />
-      })}
-
-      <OrbitControls
-        makeDefault
-        maxPolarAngle={Math.PI * 0.49}
-        minDistance={20}
-        maxDistance={2500}
-        target={[0, 10, 80]}
-      />
+      <CameraController />
+      <TourController />
     </>
   )
 }

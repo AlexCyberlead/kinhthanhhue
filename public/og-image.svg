@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Kinh Thành Hu¿ 3D">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3D1F1A"/>
+      <stop offset="55%" stop-color="#6B2E24"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C9A227"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8DCC8"/>
+      <stop offset="100%" stop-color="#C4B49A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#sky)"/>
+
+  <!-- Soft sun disk -->
+  <circle cx="980" cy="140" r="72" fill="#E8C84A" opacity="0.85"/>
+  <circle cx="980" cy="140" r="110" fill="#E8C84A" opacity="0.18"/>
+
+  <!-- Ground plane -->
+  <rect x="0" y="470" width="1200" height="160" fill="#2A1810"/>
+  <rect x="0" y="470" width="1200" height="24" fill="#1a1410" opacity="0.5"/>
+
+  <!-- Citadel silhouette  stylized Ngo Mon / Thai Hoa massing -->
+  <g transform="translate(180, 210)">
+    <!-- Side wings -->
+    <path d="M40 220 L40 140 L120 100 L200 140 L200 220 Z" fill="url(#wall)" stroke="#5C3A2A" stroke-width="3"/>
+    <path d="M640 220 L640 140 L720 100 L800 140 L800 220 Z" fill="url(#wall)" stroke="#5C3A2A" stroke-width="3"/>
+
+    <!-- Main gate body -->
+    <rect x="240" y="120" width="360" height="140" fill="url(#wall)" stroke="#5C3A2A" stroke-width="3"/>
+    <!-- Arches -->
+    <path d="M280 260 V180 Q300 150 320 180 V260 Z" fill="#1a1410"/>
+    <path d="M400 260 V165 Q420 130 440 165 V260 Z" fill="#1a1410"/>
+    <path d="M520 260 V180 Q540 150 560 180 V260 Z" fill="#1a1410"/>
+
+    <!-- Multi-tier roofs -->
+    <path d="M220 120 L420 40 L620 120 Z" fill="url(#roof)" stroke="#5C3A2A" stroke-width="2"/>
+    <path d="M260 90 L420 30 L580 90 Z" fill="#D4AF37" opacity="0.9"/>
+    <path d="M300 70 L420 22 L540 70 Z" fill="url(#roof)"/>
+
+    <!-- Flag pole -->
+    <rect x="416" y="-40" width="8" height="70" fill="#E8DCC8"/>
+    <path d="M424 -36 L490 -20 L424 -4 Z" fill="#8B1A1A"/>
+  </g>
+
+  <!-- Brand block -->
+  <rect x="64" y="48" width="520" height="118" rx="4" fill="#1a1410" opacity="0.55"/>
+  <text x="88" y="98" fill="#C9A227" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="700" letter-spacing="4">KINH THÀNH HU¾</text>
+  <text x="88" y="138" fill="#E8DCC8" font-family="Georgia, 'Times New Roman', serif" font-size="22" letter-spacing="2">Digital Twin · 3D Educational Experience</text>
+</svg>

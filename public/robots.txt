@@ -1,0 +1,5 @@
+# Kinh Thành Huế 3D — https://kinhthanhhue.web.app
+User-agent: *
+Allow: /
+
+Sitemap: https://kinhthanhhue.web.app/sitemap.xml

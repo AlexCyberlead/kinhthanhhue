@@ -3,28 +3,43 @@
  * Origin (0,0,0) = center of Đại Triều Nghi courtyard.
  * +X = East, +Y = Up, +Z = South (toward Ngọ Môn → Hương River).
  * 1 unit = 1 meter.
+ *
+ * Dimensions sourced from docs/research/layout.md (Hội Điển / Cố đô Huế).
  */
 
 export const WORLD = {
   unit: 1 as const,
-  originLabel: 'Tam sân Đại Triều Nghi',
-  /** Approximate extents used for culling / fog */
+  originLabel: 'Tâm sân Đại Triều Nghi',
   extents: {
-    citadelHalf: 1200,
-    imperialHalfX: 303,
-    imperialHalfZ: 311,
+    /** ~half of south face 2724m — approximate outer wall from center */
+    citadelHalfX: 1300,
+    citadelHalfZ: 1350,
+    /** Hoàng Thành ~622 (E-W) × ~604 (N-S) */
+    imperialHalfX: 311,
+    imperialHalfZ: 302,
+    /** Tử Cấm Thành ~324 × ~290.7 */
     forbiddenHalfX: 162,
     forbiddenHalfZ: 145,
+    wallThicknessOuter: 21.25,
+    wallHeightOuter: 6.46,
+    wallHeightImperial: 4.16,
   },
-  /** Landmark anchors — refined by research buildings.json */
   landmarks: {
     daiTrieuNghi: [0, 0, 0] as [number, number, number],
     dienThaiHoa: [0, 0, -35] as [number, number, number],
     ngoMon: [0, 0, 155] as [number, number, number],
-    kyDai: [0, 0, 420] as [number, number, number],
-    songHuong: [0, 0, 750] as [number, number, number],
+    /** Aligned with buildings.json / kyDai module (not the older 420 estimate). */
+    kyDai: [0, 0, 340] as [number, number, number],
+    phuVanLau: [0, 1, 1550] as [number, number, number],
+    nghinhLuongDinh: [0, 1, 1680] as [number, number, number],
+    songHuong: [0, 0, 780] as [number, number, number],
+    conHen: [900, 0, 850] as [number, number, number],
+    conDaVien: [-900, 0, 850] as [number, number, number],
     theToMieu: [-120, 0, -80] as [number, number, number],
+    hienLamCac: [-120, 0, -50] as [number, number, number],
     daiCungMon: [0, 0, -90] as [number, number, number],
+    hoTinhTam: [180, 0, -420] as [number, number, number],
+    nguHa: [0, 0, -380] as [number, number, number],
   },
   colors: {
     son: '#8B1A1A',

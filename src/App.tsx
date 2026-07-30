@@ -1,29 +1,45 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { Engine } from './core/Engine'
+import { MuteButton } from './world/audio'
+import { Hud } from './ux/ui'
+import { PoiPanel } from './ux/poi'
+import { TourPanel } from './ux/tour'
+import { LoadingScreen, DeviceWarning } from './ux/loading'
+import { HeadMeta } from './ux/seo'
+import { SkipLinks } from './ux/a11y'
+import { useAppStore } from './state/appStore'
 
 const WorldScene = lazy(() =>
   import('./scenes/WorldScene').then((m) => ({ default: m.WorldScene })),
 )
 
-function BootScreen() {
-  return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#1a1410]">
-      <div className="text-center">
-        <p className="text-2xl tracking-[0.2em] text-[#C9A227]">KINH THÀNH HUẾ</p>
-        <p className="mt-2 text-sm text-[#E8DCC8]/opacity-70">Đang tải digital twin…</p>
-      </div>
-    </div>
-  )
+function LocaleFromUrl() {
+  const setLocale = useAppStore((s) => s.setLocale)
+  useEffect(() => {
+    const lang = new URLSearchParams(window.location.search).get('lang')
+    if (lang === 'vi' || lang === 'en') setLocale(lang)
+  }, [setLocale])
+  return null
 }
 
 export default function App() {
   return (
-    <div className="relative h-full w-full">
-      <Suspense fallback={<BootScreen />}>
-        <Engine>
-          <WorldScene />
-        </Engine>
+    <div className="relative h-full w-full" id="main-content" role="main">
+      <HeadMeta />
+      <SkipLinks />
+      <LocaleFromUrl />
+      <Suspense fallback={<LoadingScreen />}>
+        <div id="scene-canvas" className="h-full w-full" role="application" aria-label="Kinh Thành Huế 3D">
+          <Engine>
+            <WorldScene />
+          </Engine>
+        </div>
       </Suspense>
+      <Hud />
+      <PoiPanel />
+      <TourPanel />
+      <DeviceWarning />
+      <MuteButton />
     </div>
   )
 }
