@@ -89,3 +89,4 @@ npx firebase deploy --only hosting
 
 Đây là **digital twin giáo dục / trải nghiệm**, phục dựng stylized-realistic.  
 Một số công trình đã mất (1947…) được dựng ở chế độ phục dựng; bật `ruin` trên HUD khi có bản phế tích.
+# kinhthanhhue
