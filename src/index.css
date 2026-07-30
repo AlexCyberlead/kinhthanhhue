@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --hue-son: #8b1a1a;
+  --hue-vang: #c9a227;
+  --hue-ngoi-vang: #d4a017;
+  --hue-ngoi-xanh: #2e5e4e;
+  --hue-voi: #e8dcc8;
+  --hue-da: #6e6e68;
+  --hue-gach: #9c6b4f;
+  --hue-ink: #1a1410;
+  --hue-mist: #c5b8a4;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1a1410;
+  color: var(--hue-voi);
+  font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
+}
+
+canvas {
+  display: block;
+  outline: none;
+}
