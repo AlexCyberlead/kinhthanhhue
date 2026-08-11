@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
 import type { QualityPreset } from '../../state/appStore'
 import { useAppStore } from '../../state/appStore'
-import { markQualityUserOverride } from '../../world/postfx'
+// Trỏ thẳng vào module, KHÔNG qua barrel `world/postfx`: barrel re-export cả
+// PostFX nên sẽ kéo @react-three/postprocessing (~84KB gzip) vào graph tĩnh của
+// HUD, đẩy chunk `post` lên critical path dù WorldScene đã lazy.
+import { markQualityUserOverride } from '../../world/postfx/detectGpu'
 import { Minimap } from './Minimap'
 import { CAMERA_MODES, QUALITIES, SEASONS, t, type Season } from './i18n'
 import { chipActive, chipIdle, panelClass } from './theme'
