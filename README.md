@@ -1,92 +1,123 @@
-# Kinh Thành Huế 3D — Digital Twin
+# Kinh Thành Huế 3D · Hue Imperial City Digital Twin
 
-Tái hiện 3D mang tính **giáo dục** toàn bộ Kinh thành Huế trên trình duyệt (React + three.js / R3F).  
-**Không phải** bản đo vẽ khảo cổ chính thức — kích thước/anchor có nguồn xác thực lẫn ước lượng (xem `docs/research/`).
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](./package.json)
+[![Good first issues](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://github.com/AlexCyberlead/kinhthanhhue/labels/good%20first%20issue)
+
+<p align="center">
+  <strong>VI</strong> · Tái hiện 3D mang tính <em>giáo dục</em> toàn bộ Kinh thành Huế trên trình duyệt (React + three.js / R3F).<br/>
+  <strong>EN</strong> · Educational browser-based 3D reconstruction of Hue’s imperial citadel (React + three.js / R3F).
+</p>
+
+> **Không phải** bản đo vẽ khảo cổ chính thức. / **Not** a certified archaeological survey.  
+> Kích thước & anchor có nguồn xác thực lẫn ước lượng — xem research notes bên dưới.
+
+---
+
+## Research first · Nghiên cứu là mặt tiền
+
+Trước khi sửa mesh hay đặt công trình mới, đọc bộ ghi chép Phase 0:
+
+| Doc | VI | EN |
+|-----|----|----|
+| **[docs/research/](./docs/research/)** | Mục lục research | Research index |
+| [layout.md](./docs/research/layout.md) | 3 vòng thành, Hội Điển, mốc lịch sử, hệ tọa độ | Layout, dimensions, chronology, world axes |
+| [materials.md](./docs/research/materials.md) | Ngói lưu ly, vì kèo, contract PBR | Roof tiles, joinery, PBR contract |
+| [nature_people.md](./docs/research/nature_people.md) | Cây Đại Nội, sen, trang phục | Vegetation, gardens, costumes |
+
+Claims are tagged **`[xác thực — nguồn]`** (sourced) or **`[ước lượng hợp lý]`** (reasoned estimate).
+
+### World coordinates
+
+| | |
+|--|--|
+| Origin `(0,0,0)` | Center of **Sân Đại Triều Nghi** |
+| `+Z` | South → Ngọ Môn → Hương River |
+| `+Y` | Up · `+X` = East |
+| 1 unit | **1 meter** |
+
+---
 
 ## Stack
 
 - React 18 + Vite + TypeScript + Tailwind CSS
 - three.js + `@react-three/fiber` + `@react-three/drei` + `@react-three/postprocessing`
-- zustand (state) · Firebase Hosting (deploy)
-- Geometry procedural (Vietnamese Architecture Kit) — không GLB trả phí
+- zustand · Firebase Hosting
+- **Procedural** Vietnamese Architecture Kit — no paid GLBs
 
-## Chạy local
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Build production:
-
 ```bash
-npm run build
+npm run build      # production
 npm run preview
+npm run typecheck
 ```
 
-Typecheck:
+## Controls · Điều khiển
 
-```bash
-npx tsc --noEmit
-```
+| Input | Behavior |
+|-------|----------|
+| HUD camera | Orbit / Walk (WASD + click-lock) / Drone (WASD+QE) / Tour |
+| Time / season / rain | Sky, leaves, Huế rain |
+| Quality | Low → Ultra (PostFX); GPU auto-detect on first load |
+| Yellow markers | Bilingual POI + deep-link `?poi=ngo-mon` |
+| Tour panel | 12 stops + TTS (respects mute) |
 
-## Điều khiển
+## Add a monument · Thêm công trình
 
-| Input | Hành vi |
-|-------|---------|
-| HUD camera | Orbit / Walk (WASD + click lock) / Drone (WASD+QE) / Tour |
-| Time / season / rain | Đổi bầu trời, lá, mưa Huế |
-| Quality | Low→Ultra (PostFX); GPU auto-detect lần đầu |
-| Click marker vàng | POI song ngữ + deep-link `?poi=ngo-mon` |
-| Tour panel | 12 điểm + TTS (tắt khi mute) |
-
-## Thêm công trình mới
-
-1. Implement `MonumentModule` trong `src/monuments/<ten>/` dùng kit `src/core/geometry/kit` + `getMaterial(...)`.
-2. Export mảng modules từ `index.ts`.
-3. Orchestrator đăng ký trong `src/registry/registerAll.ts` → `bootstrapMonuments()`.
-4. POI lấy từ `displayName` + `poi` trên module.
-
-Contract:
+1. Implement `MonumentModule` in `src/monuments/<name>/` using `src/core/geometry/kit` + `getMaterial(...)`.
+2. Export modules from that folder’s `index.ts`.
+3. Register in `src/registry/registerAll.ts` → `bootstrapMonuments()`.
+4. Fill bilingual `displayName` + `poi` (align anchors with [layout.md](./docs/research/layout.md)).
 
 ```ts
 export interface MonumentModule {
   id: string
   displayName: { vi: string; en: string }
   build(lod: 0 | 1 | 2): THREE.Group
-  anchor: [number, number, number] // mét; gốc = sân Đại Triều Nghi; +Z = Nam
+  anchor: [number, number, number] // meters; origin = Đại Triều Nghi court; +Z = South
   rotationY: number
   boundingRadius: number
   poi: { vi: string; en: string; year?: string }
 }
 ```
 
-## Hệ tọa độ
+Full guide: **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
-- Gốc `(0,0,0)` = tâm sân **Đại Triều Nghi**
-- `+Z` = Nam (Ngọ Môn → sông Hương)
-- `1 unit = 1 mét`
+## Roadmap for newcomers
 
-## Deploy Firebase Hosting
+Open issues labeled **`good first issue`** — e.g. richer **Điện Cần Chánh**, new **POIs**, **LOD** budgets, tour stops, research citations.
+
+👉 https://github.com/AlexCyberlead/kinhthanhhue/labels/good%20first%20issue
+
+## Deploy (Firebase Hosting)
 
 ```bash
 npm run build
-npx firebase login   # lần đầu
-npx firebase use kinhthanhhue   # hoặc đổi project trong .firebaserc
+npx firebase login          # first time
+npx firebase use kinhthanhhue
 npx firebase deploy --only hosting
 ```
 
 `firebase.json`: `public = dist`, SPA rewrite `** → /index.html`.
 
-## Credit / nguồn
+## Credits & sources
 
-- Quy hoạch & kích thước: `docs/research/layout.md` (Hội Điển / Cố đô Huế / Wikipedia — có nhãn xác thực vs ước lượng)
-- Vật liệu PBR: `docs/research/materials.md`
-- Cây & trang phục: `docs/research/nature_people.md`
-- Texture: procedural canvas/noise + palette cung đình Huế
+- Layout & dimensions: [`docs/research/layout.md`](./docs/research/layout.md)
+- Materials: [`docs/research/materials.md`](./docs/research/materials.md)
+- Nature & people: [`docs/research/nature_people.md`](./docs/research/nature_people.md)
+- Textures: procedural canvas/noise + imperial Hue palette
 
 ## Disclaimer
 
-Đây là **digital twin giáo dục / trải nghiệm**, phục dựng stylized-realistic.  
-Một số công trình đã mất (1947…) được dựng ở chế độ phục dựng; bật `ruin` trên HUD khi có bản phế tích.
-# kinhthanhhue
+Educational / experiential digital twin, stylized-realistic.  
+Some structures lost after 1947 are shown as reconstructions; use the HUD `ruin` mode when a ruin variant exists.
+
+## License
+
+[MIT](./LICENSE) — free to use, modify, and contribute.
