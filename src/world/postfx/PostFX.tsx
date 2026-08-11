@@ -59,6 +59,13 @@ export function PostFX(): JSX.Element {
           rings={4}
           intensity={preset.ssaoIntensity}
           radius={preset.ssaoRadius}
+          // AO buffer chạy ở res thấp hơn. Phải đặt ở đây, KHÔNG đặt
+          // `resolutionScale` trên <EffectComposer>: prop đó không hạ res render,
+          // nó chỉ thêm DepthDownsamplingPass rồi đẩy SSAO sang nhánh
+          // NORMAL_DEPTH + DEPTH_AWARE_UPSAMPLING — nhánh đó cho AO bão hoà,
+          // MULTIPLY với 0 và bôi đen toàn khung.
+          resolutionScale={preset.ssaoResolutionScale}
+          depthAwareUpsampling={false}
           luminanceInfluence={0.55}
           bias={0.035}
           worldDistanceThreshold={55}
@@ -141,7 +148,6 @@ export function PostFX(): JSX.Element {
       key={`${quality}-${reducedMotion ? 'rm' : 'full'}`}
       multisampling={preset.multisampling}
       enableNormalPass={preset.enableNormalPass}
-      resolutionScale={preset.resolutionScale}
       frameBufferType={HalfFloatType}
     >
       {effects}

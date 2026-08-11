@@ -4,8 +4,16 @@ export type PostFxPreset = {
   /** false = không mount EffectComposer (giữ ACES của Engine). */
   enabled: boolean
   enableNormalPass: boolean
+  /**
+   * Phải > 0 khi bật SSAO. SSAO khai báo EffectAttribute.DEPTH nên shader của
+   * EffectPass có `float depth = readDepth(UV)`. Với multisampling = 0 composer
+   * gắn depthTexture thẳng vào inputBuffer, và sau swap pass vừa sample depth
+   * texture vừa render vào đúng render target sở hữu nó — feedback loop, ra
+   * khung đen tuyệt đối. Target MSAA riêng + bước resolve phá vòng lặp đó.
+   */
   multisampling: number
-  resolutionScale: number
+  /** Res của AO buffer riêng — truyền cho <SSAO>, không phải cho <EffectComposer>. */
+  ssaoResolutionScale: number
   smaa: boolean
   ssao: boolean
   bloom: boolean
@@ -37,7 +45,7 @@ const OFF: PostFxPreset = {
   enabled: false,
   enableNormalPass: false,
   multisampling: 0,
-  resolutionScale: 1,
+  ssaoResolutionScale: 1,
   smaa: false,
   ssao: false,
   bloom: false,
@@ -71,14 +79,15 @@ const BY_QUALITY: Record<QualityPreset, PostFxPreset> = {
     ...OFF,
     enabled: true,
     enableNormalPass: true,
-    resolutionScale: 0.5,
+    multisampling: 2,
+    ssaoResolutionScale: 0.5,
     smaa: true,
     ssao: true,
     bloom: true,
     tone: true,
     grade: true,
     ssaoSamples: 8,
-    ssaoIntensity: 18,
+    ssaoIntensity: 1,
     ssaoRadius: 0.14,
     bloomIntensity: 0.35,
     bloomLuminanceThreshold: 0.88,
@@ -89,7 +98,8 @@ const BY_QUALITY: Record<QualityPreset, PostFxPreset> = {
     ...OFF,
     enabled: true,
     enableNormalPass: true,
-    resolutionScale: 0.75,
+    multisampling: 4,
+    ssaoResolutionScale: 0.75,
     smaa: true,
     ssao: true,
     bloom: true,
@@ -98,7 +108,7 @@ const BY_QUALITY: Record<QualityPreset, PostFxPreset> = {
     grade: true,
     vignette: true,
     ssaoSamples: 16,
-    ssaoIntensity: 28,
+    ssaoIntensity: 1.5,
     ssaoRadius: 0.18,
     bloomIntensity: 0.55,
     bloomLuminanceThreshold: 0.82,
@@ -115,7 +125,8 @@ const BY_QUALITY: Record<QualityPreset, PostFxPreset> = {
     ...OFF,
     enabled: true,
     enableNormalPass: true,
-    resolutionScale: 1,
+    multisampling: 4,
+    ssaoResolutionScale: 1,
     smaa: true,
     ssao: true,
     bloom: true,
@@ -124,7 +135,7 @@ const BY_QUALITY: Record<QualityPreset, PostFxPreset> = {
     grade: true,
     vignette: true,
     ssaoSamples: 28,
-    ssaoIntensity: 36,
+    ssaoIntensity: 2,
     ssaoRadius: 0.22,
     bloomIntensity: 0.75,
     bloomLuminanceThreshold: 0.78,
