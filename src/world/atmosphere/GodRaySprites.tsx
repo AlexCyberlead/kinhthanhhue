@@ -27,9 +27,14 @@ varying vec2 vUv;
 void main() {
   float x = abs(vUv.x - 0.5) * 2.0;
   float y = vUv.y;
-  float shaft = pow(1.0 - x, 2.2) * smoothstep(0.0, 0.15, y) * smoothstep(1.0, 0.55, y);
+  // max() bắt buộc: vUv nội suy có thể nhích quá 1.0 nên 1.0 - x thành âm, mà
+  // pow() với cơ số âm là undefined trong GLSL — driver trả NaN. NaN lọt qua
+  // phép so alpha < 0.01 (mọi so sánh với NaN đều false) nên không bị discard,
+  // additive blend ghi NaN vào buffer HDR, rồi chuỗi mipmap của Bloom lan NaN ra
+  // toàn khung → màn hình đen sạch trong khung giờ god-ray bật (6.5h–8.5h).
+  float shaft = pow(max(1.0 - x, 0.0), 2.2) * smoothstep(0.0, 0.15, y) * smoothstep(1.0, 0.55, y);
   float alpha = shaft * uOpacity;
-  if (alpha < 0.01) discard;
+  if (!(alpha >= 0.01)) discard;
   gl_FragColor = vec4(uColor, alpha);
 }
 `
