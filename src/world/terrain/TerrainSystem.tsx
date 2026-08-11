@@ -24,13 +24,12 @@ export function TerrainSystem(): JSX.Element {
   const water = useMemo(() => buildWaterGeometry(), [])
 
   const landMat = useMemo(() => {
-    const grass = getMaterial('co_xanh', 1)
-    const dirt = getMaterial('dat_nen', 1)
-    const stone = getMaterial('da_thanh', 1)
-    const mat = grass.clone()
+    const mat = getMaterial('co_xanh', 1).clone()
     mat.vertexColors = true
-    // Pull base slightly toward dirt/stone so banks read without a 2nd land pass
-    mat.color.copy(grass.color).lerp(dirt.color, 0.1).lerp(stone.color, 0.05)
+    // Albedo đã nằm hết ở vertex color (buildTerrainGeometry trộn cỏ→đất→đá theo
+    // đỉnh). three nhân `diffuseColor *= vColor`, nên base BẮT BUỘC là trắng —
+    // giữ màu cỏ ở đây là nhân albedo hai lần, mặt đất chỉ còn ~3% độ sáng.
+    mat.color.setRGB(1, 1, 1)
     mat.name = 'terrain_land_co_xanh'
     return mat
   }, [])
@@ -38,6 +37,7 @@ export function TerrainSystem(): JSX.Element {
   const landMatFar = useMemo(() => {
     const mat = getMaterial('co_xanh', 2).clone()
     mat.vertexColors = true
+    mat.color.setRGB(1, 1, 1) // xem ghi chú ở landMat
     mat.name = 'terrain_land_far'
     return mat
   }, [])
