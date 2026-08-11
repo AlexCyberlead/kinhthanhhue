@@ -45,3 +45,8 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedPoiId: (selectedPoiId) => set({ selectedPoiId }),
   setReconstructionMode: (reconstructionMode) => set({ reconstructionMode }),
 }))
+
+// Handle debug dev-only — đi cùng `window.__r3f` trong Engine.tsx.
+if (import.meta.env.DEV) {
+  ;(window as unknown as Record<string, unknown>).__store = useAppStore
+}
