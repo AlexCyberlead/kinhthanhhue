@@ -196,3 +196,37 @@
 3. Biến thể men gạch Bát Tràng (xanh vs vàng vs hoa xi măng mặt đài Ngọ Môn hiện đại) cần flag theo **epoch** (nguyên bản vs trùng tu).
 4. Pháp lam đa màu — một `phap_lam` id là simplification; production có thể cần atlas palette riêng.
 5. “Đồng thau” vs “đồng” trên Cửu Đỉnh: nguồn ghi đồng + kẽm (± chì, thiếc) → id `dong_thau` chấp nhận được cho PBR brass, nhưng không khẳng định thành phần % hợp kim từng đỉnh.
+
+---
+
+## 9. Texture factory (Revolution)
+
+Nguồn: `src/core/materials/textures/`. Procedural canvas, deterministic, cache `id + lod + size`. Không PNG/GLB.
+
+**Size theo LOD:** LOD0 = **512** · LOD1 = **256** (WorldScene hiện `build(1)`) · LOD2 = **128**.
+
+`getMaterial(id, lod)` luôn gắn `map`. LOD 0–1 thêm `normalMap` + `roughnessMap` + `aoMap`. `color` là tint (mặc định trắng); albedo nằm trong map.
+
+| MaterialId | Factory id | Size (0/1/2) | Repeat gợi ý (m / cycle) | Ghi chú |
+|---|---|---|---|---|
+| `ngoi_hoang_luu_ly` | `ngoiMenVang` | 512 / 256 / 128 | 2.8 × 2.8 | 8 viên × 0.35 m; glaze + nứt + blotch lò |
+| `ngoi_thanh_luu_ly` | `ngoiMenXanh` | 512 / 256 / 128 | 2.8 × 2.8 | Cùng layout, men lục |
+| `mai_ngoi_am_duong` | `ngoiAmDuong` | 512 / 256 / 128 | 2.8 × 2.8 | Xương đất nung + rêu valley |
+| `gach_vo` | `gachVo` | 512 / 256 / 128 | 4.0 × 4.0 | Viên ~0.4 × 0.2; vữa tối; sứt góc |
+| `gach_bat_trang` | `gachBatTrang` | 512 / 256 / 128 | 3.2 × 3.2 | Ô vuông men; LOD0 stamp hoa thị |
+| `go_lim` | `goLim` | 512 / 256 / 128 | 0.8 × 1.6 | Thớ dọc; cột wrap 1 vòng |
+| `go_son_son` | `sonSon` | 512 / 256 / 128 | 1.0 × 2.0 | Đỏ sâu; mòn cạnh lộ gỗ |
+| `vang_thep` | `vangThep` | 512 / 256 / 128 | 1.0 × 1.0 | Flake; mòn lộ son |
+| `da_thanh` | `daThanh` | 512 / 256 / 128 | 2.4 × 2.4 | Worley + grit + địa y |
+| `tuong_voi` | `tuongVoi` | 512 / 256 / 128 | 4.0 × 4.0 | Blotch; vệt mưa; chân lộ gạch |
+| `phap_lam` | `phapLam` | 512 / 256 / 128 | 1.2 × 1.2 | Đảo men vàng/lục/lam/trắng |
+| `co_xanh` | `co` | 512 / 256 / 128 | 8.0 × 8.0 | Thảm noise, không golf |
+| `dat_nen` | `dat` | 512 / 256 / 128 | 6.0 × 6.0 | Mùn + sỏi |
+| `dong_thau` | `dongThau` | 512 / 256 / 128 | 1.0 × 1.0 | Đúc + patina (không trong list tối thiểu, để đủ map) |
+| `nuoc` | `nuoc` | 512 / 256 / 128 | 4.0 × 4.0 | Ripple nhẹ; WaterSystem vẫn shader riêng |
+
+Repeat metres = **[ước lượng hợp lý]**. Kit (`buildWall` / `buildRoof` / `buildPlatform` / `buildColumnGrid`) chia UV cho các số này. Monument BoxGeometry 0–1 vẫn thấy một cycle đặc (da), chưa đúng mét.
+
+**Stretch đã ship:** `MeshPhysicalMaterial` clearcoat men ngói / pháp lam / Bát Tràng ở LOD0. `applyWetness(0..1)` — AtmosphereSystem gọi khi `raining`.
+
+**API phiên sau phải dùng:** `getMaterial` luôn có `map`; texture mới đi qua `getTextureSet` / factory, không `new MeshStandardMaterial({ color })`.

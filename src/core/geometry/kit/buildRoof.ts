@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { getMaterial, type MaterialId } from '../../materials/MaterialLibrary'
+import { copyUvToUv2, scaleBoxUvToMeters, uvRepeat } from './uvMeters'
 
 export type RoofOpts = {
   width: number
@@ -14,7 +15,9 @@ export type RoofOpts = {
 function curvedRoofShape(halfW: number, halfD: number, rise: number, curvature: number): THREE.BufferGeometry {
   const segments = 8
   const positions: number[] = []
+  const uvs: number[] = []
   const indices: number[] = []
+  const tile = uvRepeat('ngoiMenVang')
 
   for (let iz = 0; iz <= segments; iz++) {
     const vz = iz / segments
@@ -27,6 +30,7 @@ function curvedRoofShape(halfW: number, halfD: number, rise: number, curvature: 
       // tip eave upturn
       const eave = Math.max(0, edge - 0.75) / 0.25
       positions.push(x, y + eave * rise * 0.12 * curvature, z)
+      uvs.push(x / tile.u, z / tile.v)
     }
   }
 
@@ -42,8 +46,10 @@ function curvedRoofShape(halfW: number, halfD: number, rise: number, curvature: 
 
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
   geo.setIndex(indices)
   geo.computeVertexNormals()
+  copyUvToUv2(geo)
   return geo
 }
 
@@ -95,7 +101,9 @@ export function buildRoof(opts: RoofOpts): THREE.Group {
     const rise = lod === 2 ? 1.0 : 1.6 + (1 - scale) * 0.4
 
     if (lod === 2) {
-      const box = new THREE.Mesh(new THREE.BoxGeometry(w, rise, d), mat)
+      const boxGeo = new THREE.BoxGeometry(w, rise, d)
+      scaleBoxUvToMeters(boxGeo, w, rise, d, uvRepeat('ngoiMenVang'))
+      const box = new THREE.Mesh(boxGeo, mat)
       box.position.y = yBase + rise * 0.5
       box.castShadow = true
       group.add(box)
@@ -108,17 +116,21 @@ export function buildRoof(opts: RoofOpts): THREE.Group {
       group.add(mesh)
 
       // ridge beam
-      const ridge = new THREE.Mesh(
-        new THREE.BoxGeometry(w * 0.15, 0.18, d * 0.08),
-        getMaterial('vang_thep', lod),
-      )
+      const ridgeW = w * 0.15
+      const ridgeGeo = new THREE.BoxGeometry(ridgeW, 0.18, d * 0.08)
+      scaleBoxUvToMeters(ridgeGeo, ridgeW, 0.18, d * 0.08, uvRepeat('vangThep'))
+      const ridge = new THREE.Mesh(ridgeGeo, getMaterial('vang_thep', lod))
       ridge.position.y = yBase + rise + 0.1
       group.add(ridge)
     }
 
     // eaves board
     if (lod < 2) {
-      const eave = new THREE.Mesh(new THREE.BoxGeometry(w * 1.02, 0.12, d * 1.02), wood)
+      const eaveW = w * 1.02
+      const eaveD = d * 1.02
+      const eaveGeo = new THREE.BoxGeometry(eaveW, 0.12, eaveD)
+      scaleBoxUvToMeters(eaveGeo, eaveW, 0.12, eaveD, uvRepeat('goLim'))
+      const eave = new THREE.Mesh(eaveGeo, wood)
       eave.position.y = yBase + 0.05
       group.add(eave)
     }

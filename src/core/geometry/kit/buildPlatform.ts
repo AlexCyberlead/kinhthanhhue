@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { getMaterial } from '../../materials/MaterialLibrary'
+import { scaleBoxUvToMeters, uvRepeat } from './uvMeters'
 
 export type PlatformOpts = {
   width: number
@@ -20,7 +21,9 @@ export function buildPlatform(opts: PlatformOpts): THREE.Group {
   const stone = getMaterial('da_thanh', lod)
   const brick = getMaterial('gach_bat_trang', lod)
 
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), stone)
+  const deckGeo = new THREE.BoxGeometry(width, height, depth)
+  scaleBoxUvToMeters(deckGeo, width, height, depth, uvRepeat('daThanh'))
+  const deck = new THREE.Mesh(deckGeo, stone)
   deck.position.y = height / 2
   deck.receiveShadow = true
   deck.castShadow = true
@@ -30,10 +33,10 @@ export function buildPlatform(opts: PlatformOpts): THREE.Group {
   const stepDepth = 0.55
   for (let i = 0; i < stepCount; i++) {
     const h = ((i + 1) / stepCount) * height
-    const step = new THREE.Mesh(
-      new THREE.BoxGeometry(width * 0.45, h, stepDepth),
-      brick,
-    )
+    const stepW = width * 0.45
+    const stepGeo = new THREE.BoxGeometry(stepW, h, stepDepth)
+    scaleBoxUvToMeters(stepGeo, stepW, h, stepDepth, uvRepeat('gachBatTrang'))
+    const step = new THREE.Mesh(stepGeo, brick)
     step.position.set(0, h / 2, depth / 2 + stepDepth * (i + 0.5))
     step.receiveShadow = true
     group.add(step)

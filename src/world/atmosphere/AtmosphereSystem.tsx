@@ -1,5 +1,6 @@
-import { useMemo, type JSX } from 'react'
+import { useEffect, useMemo, type JSX } from 'react'
 import * as THREE from 'three'
+import { applyWetness } from '../../core/materials/MaterialLibrary'
 import { useAppStore } from '../../state/appStore'
 import { dayFactor, isNight } from '../sky/skyMath'
 import { RainStreaks } from './RainStreaks'
@@ -42,6 +43,10 @@ export function AtmosphereSystem(): JSX.Element {
   const raining = useAppStore((s) => s.raining)
   // Optional store flag (audio); atmosphere stays visual-only.
   useAppStore((s) => s.muted)
+
+  useEffect(() => {
+    applyWetness(raining ? 1 : 0)
+  }, [raining])
 
   const factors = useMemo(() => {
     const day = dayFactor(timeOfDay)

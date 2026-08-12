@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { getMaterial, type MaterialId } from '../../materials/MaterialLibrary'
+import { copyUvToUv2, uvRepeat } from './uvMeters'
 
 export type ColumnGridOpts = {
   rows: number
@@ -28,6 +29,14 @@ export function buildColumnGrid(opts: ColumnGridOpts): THREE.InstancedMesh {
   const [sx, sz] = typeof spacing === 'number' ? [spacing, spacing] : spacing
   const radial = lod === 0 ? 10 : lod === 1 ? 6 : 4
   const geo = new THREE.CylinderGeometry(radius * 0.92, radius, height, radial)
+  const tile = material === 'go_lim' ? uvRepeat('goLim') : uvRepeat('sonSon')
+  const uv = geo.getAttribute('uv')
+  for (let i = 0; i < uv.count; i++) {
+    // U stays 0–1 = one wrap around the shaft. V scales by height.
+    uv.setY(i, uv.getY(i) * (height / tile.v))
+  }
+  uv.needsUpdate = true
+  copyUvToUv2(geo)
   const mat = getMaterial(material, lod)
   const count = Math.max(1, rows * cols)
   const mesh = new THREE.InstancedMesh(geo, mat, count)
