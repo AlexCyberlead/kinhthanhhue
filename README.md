@@ -9,6 +9,12 @@
   <strong>EN</strong> · Educational browser-based 3D reconstruction of Hue’s imperial citadel (React + three.js / R3F).
 </p>
 
+<p align="center">
+  <img src="docs/images/hero.jpg" alt="Kinh Thành Huế 3D — aerial view from Ngọ Môn toward the Imperial City" width="100%">
+  <br>
+  <img src="docs/images/ngo-mon.jpg" alt="Kinh Thành Huế 3D — close view of Ngọ Môn and the lotus moat" width="100%">
+</p>
+
 > **Không phải** bản đo vẽ khảo cổ chính thức. / **Not** a certified archaeological survey.  
 > Kích thước & anchor có nguồn xác thực lẫn ước lượng — xem research notes bên dưới.
 
