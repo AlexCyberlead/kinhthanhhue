@@ -1,156 +1,137 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { extrudeWallGeometry } from '../../core/geometry/kit'
 import { getMaterial } from '../../core/materials/MaterialLibrary'
 import { TUCAM, type LodLevel } from './constants'
 
 function disposeObject3D(root: THREE.Object3D): void {
   root.traverse((obj) => {
     const mesh = obj as THREE.Mesh
-    if (mesh.isMesh) {
-      mesh.geometry?.dispose()
-    }
+    if (mesh.isMesh) mesh.geometry?.dispose()
   })
 }
 
-function boxAt(
-  w: number,
-  h: number,
-  d: number,
-  x: number,
-  y: number,
-  z: number,
-  rotY = 0,
+function facePath(
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  gap: number,
+  offset = 0,
+): THREE.Vector3[][] {
+  const a = new THREE.Vector3(ax, 0, az)
+  const b = new THREE.Vector3(bx, 0, bz)
+  const mid = a.clone().add(b).multiplyScalar(0.5)
+  const dir = b.clone().sub(a)
+  const len = dir.length()
+  dir.normalize()
+  if (gap <= 0 || gap * 2 >= len - 2) {
+    return [[a, b]]
+  }
+  const center = mid.clone().addScaledVector(dir, offset)
+  const left = center.clone().addScaledVector(dir, -gap)
+  const right = center.clone().addScaledVector(dir, gap)
+  return [
+    [a, left],
+    [right, b],
+  ]
+}
+
+function curtainPaths(): THREE.Vector3[][] {
+  const { halfX: hx, halfZ: hz, gaps, sideGapOffsetZ } = TUCAM
+  // Bắc: hai cửa tại x = ±40 (Tường Loan / Nghi Phụng)
+  const northZ = -hz
+  const northGaps = [40, -40]
+  const northSegs: THREE.Vector3[][] = []
+  let nx = hx
+  for (const gx of northGaps) {
+    northSegs.push([
+      new THREE.Vector3(nx, 0, northZ),
+      new THREE.Vector3(gx + gaps.north, 0, northZ),
+    ])
+    nx = gx - gaps.north
+  }
+  northSegs.push([new THREE.Vector3(nx, 0, northZ), new THREE.Vector3(-hx, 0, northZ)])
+
+  return [
+    ...facePath(-hx, hz, hx, hz, gaps.south, 0),
+    ...facePath(hx, hz, hx, -hz, gaps.east, -sideGapOffsetZ),
+    ...northSegs,
+    ...facePath(-hx, -hz, -hx, hz, gaps.west, sideGapOffsetZ),
+  ]
+}
+
+function extrudeAll(
+  paths: THREE.Vector3[][],
+  height: number,
+  thickness: number,
+  lod: LodLevel,
+  crenel: boolean,
 ): THREE.BufferGeometry {
-  const geo = new THREE.BoxGeometry(w, h, d)
-  const m = new THREE.Matrix4()
-  m.makeRotationY(rotY)
-  m.setPosition(x, y, z)
-  geo.applyMatrix4(m)
-  return geo
+  const pieces: THREE.BufferGeometry[] = []
+  for (const path of paths) {
+    pieces.push(
+      extrudeWallGeometry({
+        path,
+        height,
+        thickness,
+        crenellation: crenel && lod === 0,
+        lod,
+      }),
+    )
+  }
+  if (pieces.length === 1) return pieces[0]
+  const merged = mergeGeometries(pieces, false)
+  pieces.forEach((g) => g.dispose())
+  return merged ?? pieces[0]
 }
 
 /**
- * Curtain segments in local space (origin = Tử Cấm center).
- * South face split around Đại Cung Môn gap; other faces continuous.
- */
-function curtainBoxes(height: number, thickness: number): THREE.BufferGeometry[] {
-  const { halfX: hx, halfZ: hz, gaps } = TUCAM
-  const y = height / 2
-  const t = thickness
-  const geos: THREE.BufferGeometry[] = []
-
-  // South (+Z): gap at x=0 for Đại Cung Môn
-  {
-    const gap = gaps.south
-    if (gap > 0) {
-      const leftLen = hx - gap
-      const leftCx = -(gap + leftLen / 2)
-      const rightCx = gap + leftLen / 2
-      geos.push(boxAt(leftLen, height, t, leftCx, y, hz))
-      geos.push(boxAt(leftLen, height, t, rightCx, y, hz))
-    } else {
-      geos.push(boxAt(hx * 2, height, t, 0, y, hz))
-    }
-  }
-
-  // North (−Z)
-  {
-    const gap = gaps.north
-    if (gap > 0) {
-      const leftLen = hx - gap
-      const leftCx = -(gap + leftLen / 2)
-      const rightCx = gap + leftLen / 2
-      geos.push(boxAt(leftLen, height, t, leftCx, y, -hz))
-      geos.push(boxAt(leftLen, height, t, rightCx, y, -hz))
-    } else {
-      geos.push(boxAt(hx * 2, height, t, 0, y, -hz))
-    }
-  }
-
-  // East (+X)
-  {
-    const gap = gaps.east
-    if (gap > 0) {
-      const halfLen = hz - gap
-      const southCz = gap + halfLen / 2
-      const northCz = -(gap + halfLen / 2)
-      geos.push(boxAt(t, height, halfLen, hx, y, southCz))
-      geos.push(boxAt(t, height, halfLen, hx, y, northCz))
-    } else {
-      geos.push(boxAt(t, height, hz * 2, hx, y, 0))
-    }
-  }
-
-  // West (−X)
-  {
-    const gap = gaps.west
-    if (gap > 0) {
-      const halfLen = hz - gap
-      const southCz = gap + halfLen / 2
-      const northCz = -(gap + halfLen / 2)
-      geos.push(boxAt(t, height, halfLen, -hx, y, southCz))
-      geos.push(boxAt(t, height, halfLen, -hx, y, northCz))
-    } else {
-      geos.push(boxAt(t, height, hz * 2, -hx, y, 0))
-    }
-  }
-
-  return geos
-}
-
-function mergeBoxes(
-  geos: THREE.BufferGeometry[],
-  material: THREE.Material,
-  name: string,
-): THREE.Mesh {
-  const merged = mergeGeometries(geos, false)
-  geos.forEach((g) => g.dispose())
-  const mesh = new THREE.Mesh(
-    merged ?? new THREE.BoxGeometry(1, TUCAM.height, TUCAM.thickness),
-    material,
-  )
-  mesh.name = name
-  mesh.castShadow = true
-  mesh.receiveShadow = true
-  return mesh
-}
-
-/**
- * Tử Cấm Thành perimeter wall — local origin = geometric center.
- * Budget: ≤ 4 draw calls (merged meshes).
- * Always restored geometry (không theo reconstructionMode).
+ * Tử Cấm — cao 3.72 / dày 0.72 [xác thực]. Luôn restored.
  */
 export function buildTuCamWallGroup(lod: LodLevel = 1): THREE.Group {
   const group = new THREE.Group()
   group.name = `TuCamWalls_LOD${lod}`
 
   const { height, thickness, plinthHeight, parapetHeight, parapetThickness } = TUCAM
+  const paths = curtainPaths()
 
-  // 1) Main curtain — gạch vồ
-  const curtainGeos = curtainBoxes(height, thickness)
-  group.add(mergeBoxes(curtainGeos, getMaterial('gach_vo', lod), 'tucam-curtain'))
+  const curtain = new THREE.Mesh(
+    extrudeAll(paths, height, thickness, lod, false),
+    getMaterial('gach_vo', lod),
+  )
+  curtain.name = 'tucam-curtain'
+  curtain.castShadow = true
+  curtain.receiveShadow = true
+  group.add(curtain)
 
   if (lod >= 2) return group
 
-  // 2) Stone plinth
-  const plinthGeos = curtainBoxes(plinthHeight, thickness + 0.25)
-  group.add(mergeBoxes(plinthGeos, getMaterial('da_thanh', lod), 'tucam-plinth'))
+  const plinth = new THREE.Mesh(
+    extrudeAll(paths, plinthHeight, thickness + 0.25, lod, false),
+    getMaterial('da_thanh', lod),
+  )
+  plinth.name = 'tucam-plinth'
+  plinth.castShadow = true
+  group.add(plinth)
 
-  // 3) Lime parapet on top
-  const parapetGeos = curtainBoxes(parapetHeight, parapetThickness).map((geo) => {
-    geo.translate(0, height, 0)
-    return geo
-  })
-  group.add(mergeBoxes(parapetGeos, getMaterial('tuong_voi', lod), 'tucam-parapet'))
+  const parapet = new THREE.Mesh(
+    extrudeAll(paths, parapetHeight, parapetThickness, lod, lod === 0),
+    getMaterial('tuong_voi', lod),
+  )
+  parapet.name = 'tucam-parapet'
+  parapet.position.y = height
+  parapet.castShadow = true
+  group.add(parapet)
 
-  // LOD0: coping strip (4th DC)
   if (lod === 0) {
-    const copeH = 0.14
-    const copeGeos = curtainBoxes(copeH, parapetThickness + 0.15).map((geo) => {
-      geo.translate(0, height + parapetHeight, 0)
-      return geo
-    })
-    group.add(mergeBoxes(copeGeos, getMaterial('da_thanh', lod), 'tucam-coping'))
+    const cope = new THREE.Mesh(
+      extrudeAll(paths, 0.14, parapetThickness + 0.14, lod, false),
+      getMaterial('da_thanh', lod),
+    )
+    cope.name = 'tucam-coping'
+    cope.position.y = height + parapetHeight
+    group.add(cope)
   }
 
   return group
@@ -160,7 +141,6 @@ export function disposeTuCamWallGroup(group: THREE.Object3D): void {
   disposeObject3D(group)
 }
 
-/** Mesh count ≈ draw calls (shared MaterialLibrary materials). */
 export function countTuCamWallDrawCalls(group: THREE.Object3D): number {
   let n = 0
   group.traverse((o) => {

@@ -1,26 +1,55 @@
+import * as THREE from 'three'
 import type { MonumentModule } from '../../core/types/MonumentModule'
-import { buildCungComplex } from './buildCungComplex'
+import { getMaterial } from '../../core/materials/MaterialLibrary'
+import { buildDinhHallRuin } from '../noicung/buildDinhHall'
 
 /**
- * Điện Phụng Tiên — hư hại nặng sau chiến tranh (ruin / partial).
- * Ngói thanh lưu ly còn lại; tường vôi sụt, mái nghiêng, đổ nát InstancedMesh.
- * Anchor: buildings.json dien-phung-tien [-120, 1, -200].
+ * Điện Phụng Tiên — ruin/partial: nền, cột gãy, tường thấp đọc được.
+ * Pure — không đọc store. Anchor: buildings.json dien-phung-tien [-120, 1, -200].
  */
 function build(lod: 0 | 1 | 2) {
-  return buildCungComplex({
-    name: 'dien-phung-tien',
+  const root = new THREE.Group()
+  root.name = 'dien-phung-tien'
+  root.userData.mode = 'ruin'
+
+  const main = buildDinhHallRuin({
+    width: 24,
+    depth: 15,
+    tiers: 1,
+    tile: 'ngoi_thanh_luu_ly',
+    columnsX: lod === 0 ? 5 : 4,
+    columnsZ: 3,
+    variant: 'residence',
+    status: 'ruin',
     lod,
-    bays: 5,
-    mainWidth: lod === 2 ? 18 : 24,
-    mainDepth: lod === 2 ? 12 : 15,
-    wallH: lod === 2 ? 3.6 : 4.4,
-    wingWidth: lod === 2 ? 5 : 7,
-    wingDepth: lod === 2 ? 7 : 10,
-    columnRows: 3,
-    columnCols: lod === 0 ? 5 : 3,
-    ruin: true,
-    ridgeOrnament: 'none',
+    name: 'phung-tien-chinh',
   })
+  root.add(main)
+
+  const wing = buildDinhHallRuin({
+    width: 10,
+    depth: 8,
+    tiers: 1,
+    tile: 'ngoi_thanh_luu_ly',
+    columnsX: 3,
+    columnsZ: 2,
+    variant: 'residence',
+    status: 'ruin',
+    lod,
+    name: 'phung-tien-canh',
+  })
+  wing.position.set(16, 0, 2)
+  root.add(wing)
+
+  if (lod < 2) {
+    const plaster = getMaterial('tuong_voi', lod)
+    const stub = new THREE.Mesh(new THREE.BoxGeometry(18, 1.1, 0.4), plaster)
+    stub.position.set(-4, 1.3, -8)
+    stub.castShadow = true
+    root.add(stub)
+  }
+
+  return root
 }
 
 export const dienPhungTien: MonumentModule = {
@@ -31,8 +60,8 @@ export const dienPhungTien: MonumentModule = {
   rotationY: 0,
   boundingRadius: 35,
   poi: {
-    vi: 'Điện Phụng Tiên — điện thờ tổ mẫu / phụng tiên trong Hoàng thành; hư hại nặng sau chiến tranh, còn nền–tường–mái partial. Xây 1804. [status ước lượng hợp lý]',
-    en: 'Phung Tien Hall — ancestral / phoenix hall in the Imperial City; heavily damaged postwar, partial walls and roofs remain. Built 1804.',
+    vi: 'Điện Phụng Tiên — điện thờ tổ mẫu trong Hoàng thành; hư hại nặng sau chiến tranh — còn nền, cột gãy, tường thấp. Xây 1804. [status ước lượng hợp lý]',
+    en: 'Phung Tien Hall — ancestral hall in the Imperial City; heavily damaged postwar — readable foundation, broken columns and low walls. Built 1804.',
     year: '1804',
   },
 }

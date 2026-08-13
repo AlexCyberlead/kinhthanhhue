@@ -24,15 +24,18 @@ export const TUCAM = {
   parapetHeight: 0.55,
   parapetThickness: 0.4,
   /**
-   * Gate opening half-widths (m) — gaps in curtain.
-   * Chỉ Đại Cung Môn (Nam) trong WAVE C1; cửa phụ để wave sau.
+   * Gate opening half-widths (m) + offset dọc mặt tường từ tâm cạnh.
+   * Nam: Đại Cung. Đông/Tây: Hưng Khánh / Gia Tường (z world −200 → offset +35).
+   * Bắc: hai cửa Tường Loan / Nghi Phụng — xử lý riêng trong builder.
    */
   gaps: {
-    south: 14, // dai-cung-mon
-    north: 0,
-    east: 0,
-    west: 0,
+    south: 14,
+    north: 10,
+    east: 10,
+    west: 10,
   },
+  /** Offset tâm lỗ Đông/Tây dọc +Z local (world z − centerZ). [ước lượng] */
+  sideGapOffsetZ: 35,
 } as const
 
 export type LodLevel = 0 | 1 | 2

@@ -1,6 +1,11 @@
 export { VegetationSystem } from './VegetationSystem'
 export type { VegetationSystemProps, VegetationSpeciesId, VegetationLod } from './types'
 export { SPECIES, SPECIES_ORDER, BASE_INSTANCE_TOTAL } from './species'
-export { createPlantGeometry, disposePlantGeometryCache } from './geometries'
+export {
+  createPlantGeometry,
+  createLotusBloomGeometry,
+  createLotusLeafGeometry,
+  disposePlantGeometryCache,
+} from './geometries'
 export { generatePlacements, countInstances } from './placements'
 export { createWindMaterial } from './windMaterial'

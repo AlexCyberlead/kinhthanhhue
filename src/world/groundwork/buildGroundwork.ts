@@ -1,12 +1,21 @@
 import * as THREE from 'three'
 import { getMaterial } from '../../core/materials/MaterialLibrary'
 import { buildPlatform, buildWall } from '../../core/geometry/kit'
+import { UV_REPEAT_METERS } from '../../core/materials/textures'
+import {
+  IMPERIAL_CITY,
+  IMPERIAL_MOAT,
+  THAI_DICH,
+} from '../terrain/terrainConfig'
+import { imperialMoatSouthZ } from '../terrain/heightfield'
 import {
   BRIDGE_DECK_LEN,
   BRIDGE_DECK_W,
   BRIDGE_DECK_Y,
+  DAI_TRIEU_PLAZA,
   DAI_TRIEU_Z,
   HO_THAI_DICH_Z,
+  IMPERIAL_LOOP,
   LAKE_SPAN_Z,
   type Lod,
   NGO_MON_Z,
@@ -16,7 +25,25 @@ import {
   THAN_DAO_NORTH_Z,
   TRUNG_DAO_Z,
 } from './constants'
-import { boxAt, createArchSpanGeo, mergeOrNull, meshFrom, transformGeo } from './geoUtils'
+import {
+  buildInnerCourts,
+  buildNoiKimThuyBanks,
+  buildPartitionWalls,
+} from './buildImperialFabric'
+import {
+  boxAt,
+  createArchSpanGeo,
+  mergeOrNull,
+  meshFrom,
+  paveBox,
+  pavePlane,
+  transformGeo,
+} from './geoUtils'
+
+const BRICK_UV = UV_REPEAT_METERS.gachBatTrang
+const STONE_UV = UV_REPEAT_METERS.daThanh
+const DIRT_UV = UV_REPEAT_METERS.dat
+const BRICK_VO_UV = UV_REPEAT_METERS.gachVo
 
 function flushBuckets(
   group: THREE.Group,
@@ -38,36 +65,48 @@ function flushBuckets(
   buckets.clear()
 }
 
-/** Merged brick pavement: Ngọ Môn → Đại Triều → Bắc (+ bridge / small decks). */
+/** Merged brick pavement: Ngọ Môn → Đại Triều → Đại Cung (+ bridge / small decks). */
 function buildThanDaoPavement(lod: Lod): THREE.Mesh | null {
   const brick = getMaterial('gach_bat_trang', lod)
   const geos: THREE.BufferGeometry[] = []
   const w = ROAD_WIDTH
-  const h = 0.12
 
   const southZ0 = HO_THAI_DICH_Z + LAKE_SPAN_Z / 2
-  const southLen = NGO_MON_Z + 12 - southZ0
+  const southZ1 = NGO_MON_Z + 28
+  const southLen = southZ1 - southZ0
   if (southLen > 1) {
-    geos.push(boxAt(w, h, southLen, 0, ROAD_Y, southZ0 + southLen / 2))
+    geos.push(pavePlane(w, southLen, 0, ROAD_Y, southZ0 + southLen / 2, 0, BRICK_UV))
   }
 
   const northZ1 = HO_THAI_DICH_Z - LAKE_SPAN_Z / 2
   const northLen = northZ1 - THAN_DAO_NORTH_Z
   if (northLen > 1) {
-    geos.push(boxAt(w, h, northLen, 0, ROAD_Y, northZ1 - northLen / 2))
+    geos.push(pavePlane(w, northLen, 0, ROAD_Y, northZ1 - northLen / 2, 0, BRICK_UV))
   }
 
-  geos.push(boxAt(w * 2.4, h * 1.1, 36, 0, ROAD_Y + 0.01, DAI_TRIEU_Z))
+  geos.push(
+    pavePlane(
+      DAI_TRIEU_PLAZA.width,
+      DAI_TRIEU_PLAZA.depth,
+      0,
+      ROAD_Y + 0.012,
+      DAI_TRIEU_Z,
+      0,
+      BRICK_UV,
+    ),
+  )
 
   if (lod < 2) {
-    geos.push(boxAt(3.2, h, 28, 14, ROAD_Y, DAI_TRIEU_Z))
-    geos.push(boxAt(3.2, h, 28, -14, ROAD_Y, DAI_TRIEU_Z))
+    geos.push(pavePlane(3.4, 30, 16, ROAD_Y + 0.014, DAI_TRIEU_Z, 0, BRICK_UV))
+    geos.push(pavePlane(3.4, 30, -16, ROAD_Y + 0.014, DAI_TRIEU_Z, 0, BRICK_UV))
   }
 
-  geos.push(boxAt(BRIDGE_DECK_W - 0.6, h, BRIDGE_DECK_LEN, 0, BRIDGE_DECK_Y + 0.08, TRUNG_DAO_Z))
+  geos.push(
+    pavePlane(BRIDGE_DECK_W - 0.6, BRIDGE_DECK_LEN, 0, BRIDGE_DECK_Y + 0.08, TRUNG_DAO_Z, 0, BRICK_UV),
+  )
 
   for (const b of SMALL_BRIDGES) {
-    geos.push(boxAt(b.width - 0.4, h, b.length, b.x, 1.05, b.z, b.rotY))
+    geos.push(pavePlane(b.width - 0.4, b.length, b.x, 1.05, b.z, b.rotY, BRICK_UV))
   }
 
   return meshFrom(mergeOrNull(geos), brick, 'than-dao-pavement')
@@ -81,7 +120,7 @@ function buildCurbs(lod: Lod): THREE.Mesh | null {
   const curbH = 0.28
 
   const segments: Array<[number, number]> = [
-    [HO_THAI_DICH_Z + LAKE_SPAN_Z / 2, NGO_MON_Z + 12],
+    [HO_THAI_DICH_Z + LAKE_SPAN_Z / 2, NGO_MON_Z + 28],
     [THAN_DAO_NORTH_Z, HO_THAI_DICH_Z - LAKE_SPAN_Z / 2],
   ]
   for (const [z0, z1] of segments) {
@@ -134,9 +173,21 @@ function buildTrungDaoBridge(lod: Lod, root: THREE.Group): void {
   geosStone.push(boxAt(BRIDGE_DECK_W, 0.35, BRIDGE_DECK_LEN, 0, BRIDGE_DECK_Y - 0.1, TRUNG_DAO_Z))
 
   if (lod < 2) {
-    const railZ = BRIDGE_DECK_LEN - 1
-    geosStone.push(boxAt(0.28, 0.22, railZ, BRIDGE_DECK_W / 2 - 0.15, BRIDGE_DECK_Y + 0.55, TRUNG_DAO_Z))
-    geosStone.push(boxAt(0.28, 0.22, railZ, -(BRIDGE_DECK_W / 2 - 0.15), BRIDGE_DECK_Y + 0.55, TRUNG_DAO_Z))
+    const railZ = BRIDGE_DECK_LEN - 1.2
+    const railH = 0.78
+    geosStone.push(
+      boxAt(0.12, 0.1, railZ, BRIDGE_DECK_W / 2 - 0.22, BRIDGE_DECK_Y + railH + 0.08, TRUNG_DAO_Z),
+    )
+    geosStone.push(
+      boxAt(0.12, 0.1, railZ, -(BRIDGE_DECK_W / 2 - 0.22), BRIDGE_DECK_Y + railH + 0.08, TRUNG_DAO_Z),
+    )
+    // Thanh giữa — lan can đọc được, không tấm ván bay
+    geosStone.push(
+      boxAt(0.08, 0.06, railZ, BRIDGE_DECK_W / 2 - 0.22, BRIDGE_DECK_Y + railH * 0.48, TRUNG_DAO_Z),
+    )
+    geosStone.push(
+      boxAt(0.08, 0.06, railZ, -(BRIDGE_DECK_W / 2 - 0.22), BRIDGE_DECK_Y + railH * 0.48, TRUNG_DAO_Z),
+    )
   }
 
   const stoneMesh = meshFrom(mergeOrNull(geosStone), stone, 'trung-dao-stone')
@@ -145,14 +196,27 @@ function buildTrungDaoBridge(lod: Lod, root: THREE.Group): void {
   if (brickMesh) root.add(brickMesh)
 
   if (lod < 2) {
-    const spacing = lod === 0 ? 1.35 : 1.8
-    const countPerSide = Math.max(4, Math.floor((BRIDGE_DECK_LEN - 2) / spacing))
-    const postGeo = new THREE.BoxGeometry(0.22, 0.85, 0.22)
+    const spacing = lod === 0 ? 1.2 : 1.55
+    const countPerSide = Math.max(6, Math.floor((BRIDGE_DECK_LEN - 2) / spacing))
+    const railH = 0.78
+    // Con tiện lathe — cùng DNA sân / lan can kit
+    const pts = [
+      new THREE.Vector2(0.001, 0),
+      new THREE.Vector2(0.07, 0.02),
+      new THREE.Vector2(0.048, 0.08),
+      new THREE.Vector2(0.09, 0.24),
+      new THREE.Vector2(0.045, 0.4),
+      new THREE.Vector2(0.07, 0.54),
+      new THREE.Vector2(0.04, 0.68),
+      new THREE.Vector2(0.055, 0.76),
+      new THREE.Vector2(0.001, 0.78),
+    ]
+    const postGeo = new THREE.LatheGeometry(pts, lod === 0 ? 8 : 6)
     const posts = new THREE.InstancedMesh(postGeo, stone, countPerSide * 2)
     posts.name = 'trung-dao-posts'
     posts.castShadow = true
 
-    const finialGeo = new THREE.ConeGeometry(0.14, 0.28, lod === 0 ? 8 : 5)
+    const finialGeo = new THREE.SphereGeometry(0.09, lod === 0 ? 8 : 5, 5)
     const finials = new THREE.InstancedMesh(finialGeo, gold, countPerSide * 2)
     finials.name = 'trung-dao-finials'
     finials.castShadow = true
@@ -160,17 +224,17 @@ function buildTrungDaoBridge(lod: Lod, root: THREE.Group): void {
     const dummy = new THREE.Object3D()
     let idx = 0
     for (const side of [-1, 1]) {
-      const x = side * (BRIDGE_DECK_W / 2 - 0.2)
+      const x = side * (BRIDGE_DECK_W / 2 - 0.22)
       for (let i = 0; i < countPerSide; i++) {
         const t = countPerSide === 1 ? 0.5 : i / (countPerSide - 1)
         const z = TRUNG_DAO_Z - BRIDGE_DECK_LEN / 2 + 1 + t * (BRIDGE_DECK_LEN - 2)
-        dummy.position.set(x, BRIDGE_DECK_Y + 0.5, z)
+        dummy.position.set(x, BRIDGE_DECK_Y + 0.12, z)
         dummy.rotation.set(0, 0, 0)
         dummy.scale.set(1, 1, 1)
         dummy.updateMatrix()
         posts.setMatrixAt(idx, dummy.matrix)
 
-        dummy.position.set(x, BRIDGE_DECK_Y + 1.05, z)
+        dummy.position.set(x, BRIDGE_DECK_Y + 0.12 + railH + 0.06, z)
         dummy.updateMatrix()
         finials.setMatrixAt(idx, dummy.matrix)
         idx++
@@ -376,7 +440,6 @@ function buildMainSteps(lod: Lod, root: THREE.Group): void {
 }
 
 function buildFlowerWalls(lod: Lod, root: THREE.Group): void {
-  const brick = getMaterial('gach_vo', lod)
   const paths: THREE.Vector3[][] = [
     [new THREE.Vector3(11, 0, 95), new THREE.Vector3(11, 0, 130)],
     [new THREE.Vector3(-11, 0, 95), new THREE.Vector3(-11, 0, 130)],
@@ -384,7 +447,6 @@ function buildFlowerWalls(lod: Lod, root: THREE.Group): void {
     [new THREE.Vector3(-11, 0, 8), new THREE.Vector3(-11, 0, 32)],
   ]
 
-  const wallGeos: THREE.BufferGeometry[] = []
   for (const path of paths) {
     const wall = buildWall({
       path,
@@ -393,14 +455,8 @@ function buildFlowerWalls(lod: Lod, root: THREE.Group): void {
       crenellation: false,
       lod,
     })
-    wall.updateMatrixWorld(true)
-    const g = wall.geometry.clone()
-    g.applyMatrix4(wall.matrixWorld)
-    wallGeos.push(g)
-    wall.geometry.dispose()
+    root.add(wall)
   }
-  const wallMesh = meshFrom(mergeOrNull(wallGeos), brick, 'flower-wall-bases')
-  if (wallMesh) root.add(wallMesh)
 
   if (lod === 2) return
 
@@ -479,9 +535,177 @@ function buildFlowerWalls(lod: Lod, root: THREE.Group): void {
   }
 }
 
+/** Đường đất chữ nhật ôm Tử Cấm — 1 vòng trong Hoàng thành. */
+function buildImperialLoop(lod: Lod): THREE.Mesh | null {
+  const dirt = getMaterial('dat_nen', lod)
+  const geos: THREE.BufferGeometry[] = []
+  const { centerX, centerZ, halfX, halfZ, width, y } = IMPERIAL_LOOP
+  const innerHalfZ = halfZ - width / 2
+
+  geos.push(pavePlane(halfX * 2, width, centerX, y, centerZ - halfZ, 0, DIRT_UV))
+  geos.push(pavePlane(halfX * 2, width, centerX, y, centerZ + halfZ, 0, DIRT_UV))
+  geos.push(pavePlane(width, innerHalfZ * 2, centerX - halfX, y, centerZ, 0, DIRT_UV))
+  geos.push(pavePlane(width, innerHalfZ * 2, centerX + halfX, y, centerZ, 0, DIRT_UV))
+
+  return meshFrom(mergeOrNull(geos), dirt, 'imperial-loop-road')
+}
+
+/** Kè đá + bậc xuống nước quanh Hồ Thái Dịch. */
+function buildThaiDichBanks(lod: Lod, root: THREE.Group): void {
+  const stone = getMaterial('da_thanh', lod)
+  const brick = getMaterial('gach_vo', lod)
+  const silt = getMaterial('dat_nen', lod)
+  const geosStone: THREE.BufferGeometry[] = []
+  const geosBrick: THREE.BufferGeometry[] = []
+
+  const hx = THAI_DICH.halfX + 2.2
+  const hz = THAI_DICH.halfZ + 2.2
+  const cx = THAI_DICH.cx
+  const cz = THAI_DICH.cz
+  const copeW = 0.85
+  const copeH = 0.42
+
+  const bed = meshFrom(
+    pavePlane(THAI_DICH.halfX * 2 + 2, THAI_DICH.halfZ * 2 + 2, cx, -0.08, cz, 0, DIRT_UV),
+    silt,
+    'thai-dich-bed',
+  )
+  if (bed) {
+    bed.receiveShadow = true
+    root.add(bed)
+  }
+
+  geosStone.push(paveBox(hx * 2 + copeW, copeH, copeW, cx, copeH / 2, cz + hz, 0, STONE_UV))
+  geosStone.push(paveBox(hx * 2 + copeW, copeH, copeW, cx, copeH / 2, cz - hz, 0, STONE_UV))
+  geosStone.push(paveBox(copeW, copeH, hz * 2, cx + hx, copeH / 2, cz, 0, STONE_UV))
+  geosStone.push(paveBox(copeW, copeH, hz * 2, cx - hx, copeH / 2, cz, 0, STONE_UV))
+
+  // Inner revetment dropping toward water
+  if (lod < 2) {
+    const faceH = 0.7
+    geosBrick.push(paveBox(hx * 2 - 1.2, faceH, 0.28, cx, -0.12, cz + hz - 0.7, 0, BRICK_VO_UV))
+    geosBrick.push(paveBox(hx * 2 - 1.2, faceH, 0.28, cx, -0.12, cz - hz + 0.7, 0, BRICK_VO_UV))
+  }
+
+  const stepN = lod === 2 ? 2 : 5
+  for (const sign of [-1, 1] as const) {
+    const zEdge = cz + sign * (hz - 0.2)
+    for (let i = 0; i < stepN; i++) {
+      const h = 0.14 * (i + 1)
+      const d = 0.48
+      geosStone.push(
+        paveBox(14, h, d, 0, -0.05 + h / 2, zEdge + sign * (0.35 + d * (i + 0.4)), 0, STONE_UV),
+      )
+    }
+  }
+
+  const stoneMesh = meshFrom(mergeOrNull(geosStone), stone, 'thai-dich-ke')
+  const brickMesh = meshFrom(mergeOrNull(geosBrick), brick, 'thai-dich-revetment')
+  if (stoneMesh) {
+    stoneMesh.castShadow = lod === 0
+    root.add(stoneMesh)
+  }
+  if (brickMesh) {
+    brickMesh.castShadow = false
+    root.add(brickMesh)
+  }
+}
+
+/**
+ * Bờ Ngoại Kim Thủy — kè đá hai mép, chừa cầu đất 4 cửa.
+ * [ước lượng hợp lý — inset/width từ terrainConfig.IMPERIAL_MOAT]
+ */
+function buildNgoaiKimThuyBanks(lod: Lod): THREE.Mesh | null {
+  const stone = getMaterial('da_thanh', lod)
+  const geos: THREE.BufferGeometry[] = []
+
+  const southZ = imperialMoatSouthZ()
+  const northZ = IMPERIAL_CITY.centerZ - IMPERIAL_CITY.halfZ
+  const eastX = IMPERIAL_CITY.centerX + IMPERIAL_CITY.halfX
+  const westX = IMPERIAL_CITY.centerX - IMPERIAL_CITY.halfX
+  const inner = IMPERIAL_MOAT.inset
+  const outer = IMPERIAL_MOAT.inset + IMPERIAL_MOAT.width
+  const copeW = 0.7
+  const copeH = 0.32
+  const y = copeH / 2 + 0.02
+
+  const southGap = IMPERIAL_MOAT.gateGapSouth
+  const sideGap = IMPERIAL_MOAT.gateGap
+
+  const pushStrip = (
+    w: number,
+    d: number,
+    x: number,
+    z: number,
+    skip: { alongX: boolean; gap: number; at: number } | null,
+  ) => {
+    if (!skip) {
+      geos.push(paveBox(w, copeH, d, x, y, z, 0, STONE_UV))
+      return
+    }
+    if (skip.alongX) {
+      const leftW = skip.at - skip.gap - (x - w / 2)
+      const rightW = x + w / 2 - (skip.at + skip.gap)
+      if (leftW > 1.2) {
+        geos.push(paveBox(leftW, copeH, d, x - w / 2 + leftW / 2, y, z, 0, STONE_UV))
+      }
+      if (rightW > 1.2) {
+        geos.push(paveBox(rightW, copeH, d, x + w / 2 - rightW / 2, y, z, 0, STONE_UV))
+      }
+    } else {
+      const southD = skip.at - skip.gap - (z - d / 2)
+      const northD = z + d / 2 - (skip.at + skip.gap)
+      if (southD > 1.2) {
+        geos.push(paveBox(w, copeH, southD, x, y, z - d / 2 + southD / 2, 0, STONE_UV))
+      }
+      if (northD > 1.2) {
+        geos.push(paveBox(w, copeH, northD, x, y, z + d / 2 - northD / 2, 0, STONE_UV))
+      }
+    }
+  }
+
+  const spanX = eastX - westX + outer * 2
+  const midX = (eastX + westX) / 2
+  const spanZ = southZ - northZ + outer * 2
+  const midZ = (southZ + northZ) / 2
+
+  // South inner + outer lips
+  pushStrip(spanX, copeW, midX, southZ + inner, { alongX: true, gap: southGap, at: 0 })
+  pushStrip(spanX, copeW, midX, southZ + outer, { alongX: true, gap: southGap, at: 0 })
+  // North
+  pushStrip(spanX, copeW, midX, northZ - inner, { alongX: true, gap: sideGap, at: 0 })
+  pushStrip(spanX, copeW, midX, northZ - outer, { alongX: true, gap: sideGap, at: 0 })
+  // East / west — skip gate at Hoàng thành tâm z
+  const sideLen = spanZ - 2
+  pushStrip(copeW, sideLen, eastX + inner, midZ, {
+    alongX: false,
+    gap: sideGap,
+    at: IMPERIAL_CITY.centerZ,
+  })
+  pushStrip(copeW, sideLen, eastX + outer, midZ, {
+    alongX: false,
+    gap: sideGap,
+    at: IMPERIAL_CITY.centerZ,
+  })
+  pushStrip(copeW, sideLen, westX - inner, midZ, {
+    alongX: false,
+    gap: sideGap,
+    at: IMPERIAL_CITY.centerZ,
+  })
+  pushStrip(copeW, sideLen, westX - outer, midZ, {
+    alongX: false,
+    gap: sideGap,
+    at: IMPERIAL_CITY.centerZ,
+  })
+
+  const mesh = meshFrom(mergeOrNull(geos), stone, 'ngoai-kim-thuy-ke')
+  if (mesh) mesh.castShadow = lod === 0
+  return mesh
+}
+
 /**
  * Assemble full groundwork group.
- * Typical draw calls (lod1): ~12–16 (merged roads/stone/arches + instanced rails/walls).
+ * Typical draw calls (lod1): ~16–20 (merged roads/stone/arches + instanced rails/walls).
  */
 export function buildGroundwork(lod: Lod = 1): THREE.Group {
   const root = new THREE.Group()
@@ -493,10 +717,32 @@ export function buildGroundwork(lod: Lod = 1): THREE.Group {
   const curbs = buildCurbs(lod)
   if (curbs) root.add(curbs)
 
+  const loop = buildImperialLoop(lod)
+  if (loop) {
+    loop.castShadow = false
+    root.add(loop)
+  }
+
+  buildThaiDichBanks(lod, root)
+
+  const moatBanks = buildNgoaiKimThuyBanks(lod)
+  if (moatBanks) root.add(moatBanks)
+
   buildTrungDaoBridge(lod, root)
   buildSmallBridges(lod, root)
   buildMainSteps(lod, root)
   buildFlowerWalls(lod, root)
+
+  const courts = buildInnerCourts(lod)
+  if (courts) {
+    courts.castShadow = false
+    root.add(courts)
+  }
+
+  const noiKe = buildNoiKimThuyBanks(lod)
+  if (noiKe) root.add(noiKe)
+
+  buildPartitionWalls(lod, root)
 
   return root
 }

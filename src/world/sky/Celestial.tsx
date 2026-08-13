@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useAppStore } from '../../state/appStore'
 import type { SkyPalette } from './skyMath'
 
 const CELESTIAL_RADIUS = 3800
@@ -17,7 +18,16 @@ type Props = {
  * Single InstancedMesh (2 instances) for sun + moon discs — 1 draw call.
  * Directional + ambient + hemisphere lights synced to timeOfDay.
  */
+function shadowMapSize(quality: 'low' | 'med' | 'high' | 'ultra'): number {
+  if (quality === 'ultra') return 4096
+  if (quality === 'low') return 1024
+  return 2048
+}
+
 export function Celestial({ sunDir, moonDir, palette, day }: Props) {
+  const quality = useAppStore((s) => s.quality)
+  const mapSize = shadowMapSize(quality)
+
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const sunLightRef = useRef<THREE.DirectionalLight>(null)
   const moonLightRef = useRef<THREE.DirectionalLight>(null)
@@ -67,12 +77,12 @@ export function Celestial({ sunDir, moonDir, palette, day }: Props) {
     }
 
     if (sunLightRef.current) {
-      sunLightRef.current.position.copy(sunDir).multiplyScalar(400)
-      sunLightRef.current.target.position.set(0, 0, 0)
+      sunLightRef.current.position.copy(sunDir).multiplyScalar(560)
+      sunLightRef.current.target.position.set(0, 0, -80)
+      sunLightRef.current.target.updateMatrixWorld()
       sunLightRef.current.intensity = palette.sunIntensity
       sunLightRef.current.color.copy(palette.sunColor)
       sunLightRef.current.visible = palette.sunIntensity > 0.04
-      // Only cast shadows when sun is meaningfully above horizon
       sunLightRef.current.castShadow = sunDir.y > 0.08
     }
 
@@ -96,9 +106,11 @@ export function Celestial({ sunDir, moonDir, palette, day }: Props) {
       hemiRef.current.groundColor.copy(palette.hemiGround)
     }
 
-    // Sync fog / exposure with sky palette
     if (scene.fog && 'color' in scene.fog) {
       ;(scene.fog as THREE.Fog | THREE.FogExp2).color.copy(palette.fog)
+    }
+    if (scene.fog instanceof THREE.FogExp2) {
+      scene.fog.density = palette.fogDensity
     }
     gl.toneMappingExposure = palette.exposure
   })
@@ -119,18 +131,22 @@ export function Celestial({ sunDir, moonDir, palette, day }: Props) {
       <hemisphereLight ref={hemiRef} args={['#cfe4ff', '#6b5a45', 0.4]} />
 
       <directionalLight
+        key={mapSize}
         ref={sunLightRef}
         castShadow
         intensity={1.2}
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-far={1200}
-        shadow-camera-left={-400}
-        shadow-camera-right={400}
-        shadow-camera-top={400}
-        shadow-camera-bottom={-400}
-        shadow-bias={-0.00015}
+        shadow-mapSize={[mapSize, mapSize]}
+        shadow-camera-near={8}
+        shadow-camera-far={1400}
+        shadow-camera-left={-340}
+        shadow-camera-right={340}
+        shadow-camera-top={340}
+        shadow-camera-bottom={-340}
+        shadow-bias={-0.00008}
+        shadow-normalBias={0.045}
+        shadow-radius={2}
       >
-        <object3D attach="target" position={[0, 0, 0]} />
+        <object3D attach="target" position={[0, 0, -80]} />
       </directionalLight>
 
       <directionalLight ref={moonLightRef} intensity={0.2} color="#c8d4e8">

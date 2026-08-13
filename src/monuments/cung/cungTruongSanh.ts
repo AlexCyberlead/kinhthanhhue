@@ -1,24 +1,18 @@
 import type { MonumentModule } from '../../core/types/MonumentModule'
-import { buildCungComplex } from './buildCungComplex'
+import { buildCungCompound } from './buildCungCompound'
 
 /**
- * Cung Trường Sanh (Trường Sinh) — phía Tây-Bắc Hoàng thành.
- * Ngói thanh lưu ly; phức hợp nhỏ hơn Diên Thọ.
+ * Cung Trường Sanh (Trường Sinh) — compound Tây-Bắc, nhỏ hơn Diên Thọ.
  * Anchor: buildings.json cung-truong-sanh [-200, 1, -300].
  */
 function build(lod: 0 | 1 | 2) {
-  return buildCungComplex({
+  return buildCungCompound({
     name: 'cung-truong-sanh',
     lod,
-    bays: 5,
-    mainWidth: lod === 2 ? 22 : 28,
-    mainDepth: lod === 2 ? 14 : 17,
-    wallH: lod === 2 ? 4.0 : 4.8,
-    wingWidth: lod === 2 ? 7 : 9,
-    wingDepth: lod === 2 ? 9 : 12,
-    columnRows: lod === 0 ? 3 : 3,
-    columnCols: lod === 0 ? 5 : 4,
-    ridgeOrnament: 'phoenix',
+    mainW: 24,
+    mainD: 14,
+    rear: true,
+    scale: lod === 2 ? 0.86 : 0.88,
   })
 }
 
@@ -28,10 +22,10 @@ export const cungTruongSanh: MonumentModule = {
   build,
   anchor: [-200, 1, -300],
   rotationY: 0,
-  boundingRadius: 45,
+  boundingRadius: 52,
   poi: {
-    vi: 'Cung Trường Sanh (Trường Sinh) — cung phía Tây-Bắc Hoàng thành; nhiều gian, mái trùng thiềm ngói thanh lưu ly. Xây 1822; đã trùng tu.',
-    en: 'Truong Sanh Palace — northwest Imperial City complex; multi-bay halls with green-glazed double eaves. Built 1822; restored.',
+    vi: 'Cung Trường Sanh (Trường Sinh) — khu Tây-Bắc Hoàng thành; nhiều nhà, sân trong, cổng, hành lang, mái thanh lưu ly. Xây 1822; đã trùng tu.',
+    en: 'Truong Sanh Palace — northwest Imperial City compound: halls, inner court, gate, galleries, green-glazed roofs. Built 1822; restored.',
     year: '1822',
   },
 }

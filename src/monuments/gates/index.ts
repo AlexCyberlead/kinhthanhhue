@@ -1,3 +1,4 @@
 export { buildCitadelGate } from './buildCitadelGate'
 export type { CitadelGateStyle, CitadelGateBuildOpts } from './buildCitadelGate'
-export { citadelGateModules, citadelGateIds } from './gateDefs'
+export { buildThuyQuan } from './buildThuyQuan'
+export { citadelGateModules, citadelGateIds, thuyQuanModules } from './gateDefs'

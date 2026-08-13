@@ -24,7 +24,7 @@ export function buildMieuCourtyard(opts: MieuCourtyardOpts): THREE.Group {
     depth,
     lod = 1,
     nghiMon = true,
-    wallHeight = lod === 2 ? 1.6 : 2.4,
+    wallHeight = lod === 2 ? 1.8 : 2.7,
   } = opts
 
   const root = new THREE.Group()
@@ -148,15 +148,7 @@ export function buildNghiMon(opts: {
   lintel.castShadow = true
   g.add(lintel)
 
-  // LOD1: flat roof slab (1 call) instead of full curved roof
-  if (lod === 1) {
-    const slab = new THREE.Mesh(
-      new THREE.BoxGeometry(width * 1.15, 0.35, 2.0),
-      getMaterial('ngoi_thanh_luu_ly', lod),
-    )
-    slab.position.y = h + 0.55
-    g.add(slab)
-  } else {
+  if (lod < 2) {
     // LOD0: timber frame + curved roof
     const beam = new THREE.Mesh(new THREE.BoxGeometry(width * 0.9, 0.22, 0.28), son)
     beam.position.y = h - 0.35
@@ -167,7 +159,7 @@ export function buildNghiMon(opts: {
       depth: 2.6,
       tiers: 1,
       tileMaterial: 'ngoi_thanh_luu_ly',
-      ridgeOrnament: 'none',
+      ridge: lod === 0 ? 'bau-phap-lam' : 'none',
       lod,
     })
     roof.position.y = h + 0.45

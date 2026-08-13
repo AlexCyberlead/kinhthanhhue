@@ -112,7 +112,7 @@ function buildVongLau(opts: {
     depth: depth * 1.15,
     tiers: lod === 0 ? 2 : 1,
     tileMaterial: 'ngoi_thanh_luu_ly',
-    ridgeOrnament: lod === 0 ? 'dragon' : 'none',
+    ridge: lod < 2 ? 'long-chau-nhat' : 'none',
     lod,
   })
   roof.position.y = deckH + colH + (lod === 2 ? 0.08 : 0.15)

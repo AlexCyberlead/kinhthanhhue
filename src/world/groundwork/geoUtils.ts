@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { copyUvToUv2, scaleBoxUvToMeters } from '../../core/geometry/kit/uvMeters'
 
 const _pos = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
@@ -18,6 +19,55 @@ export function boxAt(
   ry = 0,
 ): THREE.BufferGeometry {
   const geo = new THREE.BoxGeometry(w, h, d)
+  _euler.set(0, ry, 0)
+  _quat.setFromEuler(_euler)
+  _pos.set(x, y, z)
+  _mat.compose(_pos, _quat, _scale)
+  geo.applyMatrix4(_mat)
+  return geo
+}
+
+/** Box with metre-scaled UVs so factory brick/stone tiles instead of stretching. */
+export function paveBox(
+  w: number,
+  h: number,
+  d: number,
+  x: number,
+  y: number,
+  z: number,
+  ry: number,
+  repeat: { u: number; v: number },
+): THREE.BufferGeometry {
+  const geo = new THREE.BoxGeometry(w, h, d)
+  scaleBoxUvToMeters(geo, w, h, d, repeat)
+  _euler.set(0, ry, 0)
+  _quat.setFromEuler(_euler)
+  _pos.set(x, y, z)
+  _mat.compose(_pos, _quat, _scale)
+  geo.applyMatrix4(_mat)
+  return geo
+}
+
+/** Horizontal slab (XZ) with metre UVs. Prefer this for sân / đường. */
+export function pavePlane(
+  w: number,
+  d: number,
+  x: number,
+  y: number,
+  z: number,
+  ry: number,
+  repeat: { u: number; v: number },
+): THREE.BufferGeometry {
+  const geo = new THREE.PlaneGeometry(w, d)
+  geo.rotateX(-Math.PI / 2)
+  const uv = geo.getAttribute('uv')
+  if (uv) {
+    for (let i = 0; i < uv.count; i++) {
+      uv.setXY(i, uv.getX(i) * (w / repeat.u), uv.getY(i) * (d / repeat.v))
+    }
+    uv.needsUpdate = true
+    copyUvToUv2(geo)
+  }
   _euler.set(0, ry, 0)
   _quat.setFromEuler(_euler)
   _pos.set(x, y, z)

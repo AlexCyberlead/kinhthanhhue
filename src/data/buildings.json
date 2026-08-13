@@ -30,7 +30,7 @@
     "rotationY": 0,
     "boundingRadius": 40,
     "year": "1833",
-    "notes": "Cổng chính Nam Hoàng thành; định hình Minh Mạng 14 (1833–1834). Anchor [ước lượng hợp lý]."
+    "notes": "Cổng chính Nam Hoàng thành; định hình Minh Mạng 14 (1833–1834). Anchor [ước lượng hợp lý]. Mặt tiền ~58 m, sâu ~27.5 m, đài ~8.6 m [ước lượng hợp lý]. 9 bộ mái + ~100 cột [xác thực — Wikipedia / Vietnam Tourism]."
   },
   {
     "id": "ho-thai-dich",
@@ -193,9 +193,20 @@
     "status": "ruin",
     "anchor": [160, 1, -220],
     "rotationY": 0,
-    "boundingRadius": 40,
+    "boundingRadius": 48,
     "year": "1804",
-    "notes": "Khu hành chính nội vụ phía Đông. Anchor [ước lượng hợp lý]."
+    "notes": "Khu hành chính nội vụ phía Đông — nhiều nhà + sân gạch + tường hoa (phiên 9). Anchor [ước lượng hợp lý]."
+  },
+  {
+    "id": "ho-tinh-tam",
+    "name": { "vi": "Hồ Tịnh Tâm", "en": "Tinh Tam Lake" },
+    "zone": "kinh-thanh",
+    "status": "extant",
+    "anchor": [220, 0, -620],
+    "rotationY": 0,
+    "boundingRadius": 190,
+    "year": "1822",
+    "notes": "Hồ ngự 3 đảo Bồng Lai / Phương Trượng / Doanh Châu. Tâm [220, −620], mặt ~280×180 m. WORLD.landmarks cũ [180, −420] đè tường Bắc z≈−482 — đã dịch. [ước lượng hợp lý]"
   },
   {
     "id": "dai-cung-mon",

@@ -245,7 +245,7 @@ export function buildKienTrungRestored(lod: 0 | 1 | 2): THREE.Group {
     depth: lod === 2 ? D + 2 : D + 3.5,
     tiers: lod === 0 ? 2 : 1,
     tileMaterial: 'ngoi_hoang_luu_ly',
-    ridgeOrnament: lod === 0 ? 'dragon' : 'none',
+    ridge: lod < 2 ? 'long-chau-nhat' : 'none',
     curvature: 0.88,
     lod,
   })

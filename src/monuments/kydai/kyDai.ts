@@ -2,12 +2,65 @@ import * as THREE from 'three'
 import type { MonumentModule } from '../../core/types/MonumentModule'
 import { getMaterial } from '../../core/materials/MaterialLibrary'
 import { buildPlatform } from '../../core/geometry/kit/buildPlatform'
+import { scaleBoxUvToMeters, uvRepeat } from '../../core/geometry/kit/uvMeters'
 import { frustumMesh, truncatedPyramidGeo } from './geometry'
 import { buildFlagPole } from './flagPole'
 
+function railRing(
+  half: number,
+  y: number,
+  lod: 0 | 1,
+  stone: THREE.Material,
+): THREE.Group {
+  const g = new THREE.Group()
+  const railH = 0.78
+  const postCount = lod === 0 ? 7 : 5
+  const postGeo = new THREE.BoxGeometry(0.14, railH, 0.14)
+  scaleBoxUvToMeters(postGeo, 0.14, railH, 0.14, uvRepeat('daThanh'))
+  const posts = new THREE.InstancedMesh(postGeo, stone, postCount * 4)
+  posts.castShadow = lod === 0
+  const dummy = new THREE.Object3D()
+  let idx = 0
+  const sides: Array<(u: number) => [number, number]> = [
+    (u) => [-half + u * half * 2, -half],
+    (u) => [-half + u * half * 2, half],
+    (u) => [-half, -half + u * half * 2],
+    (u) => [half, -half + u * half * 2],
+  ]
+  for (const side of sides) {
+    for (let i = 0; i < postCount; i++) {
+      const u = i / Math.max(1, postCount - 1)
+      const [px, pz] = side(u)
+      dummy.position.set(px, y + railH / 2, pz)
+      dummy.updateMatrix()
+      posts.setMatrixAt(idx++, dummy.matrix)
+    }
+  }
+  posts.instanceMatrix.needsUpdate = true
+  g.add(posts)
+
+  const railInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.09, 0.11), stone, 4)
+  const segs: Array<{ p: [number, number, number]; s: [number, number, number]; r: number }> = [
+    { p: [0, y + railH, -half], s: [half * 2, 1, 1], r: 0 },
+    { p: [0, y + railH, half], s: [half * 2, 1, 1], r: 0 },
+    { p: [-half, y + railH, 0], s: [half * 2, 1, 1], r: Math.PI / 2 },
+    { p: [half, y + railH, 0], s: [half * 2, 1, 1], r: Math.PI / 2 },
+  ]
+  segs.forEach((seg, i) => {
+    dummy.position.set(...seg.p)
+    dummy.rotation.set(0, seg.r, 0)
+    dummy.scale.set(...seg.s)
+    dummy.updateMatrix()
+    railInst.setMatrixAt(i, dummy.matrix)
+  })
+  railInst.instanceMatrix.needsUpdate = true
+  g.add(railInst)
+  return g
+}
+
 /**
- * Kỳ Đài — 3 truncated-pyramid tiers (~17.5 m) + 37 m flagpole ≈ 54.5 m total.
- * Anchor: buildings.json ky-dai [0, 0, 340].
+ * Kỳ Đài — 3 tầng đài thu dần ốp gạch vồ + lan can mỗi sân + cột 37 m.
+ * [xác thực — VnExpress] đài ~17.5 m (5.5 / 6 / 6) + cột 37 m ≈ 54.5 m.
  */
 function buildKyDai(lod: 0 | 1 | 2): THREE.Group {
   const root = new THREE.Group()
@@ -26,9 +79,11 @@ function buildKyDai(lod: 0 | 1 | 2): THREE.Group {
     steps: lod === 2 ? 2 : 4,
     balustrade: lod === 0,
     lod,
+    stepFace: 'south',
   })
   root.add(plinth)
 
+  // [xác thực] 3 tầng ~5.5 / 6 / 6 m. Nửa cạnh [ước lượng hợp lý].
   const tiers: { halfB: number; halfT: number; h: number }[] =
     lod === 2
       ? [
@@ -47,136 +102,96 @@ function buildKyDai(lod: 0 | 1 | 2): THREE.Group {
 
   for (let i = 0; i < 3; i++) {
     const { halfB, halfT, h } = tiers[i]
-    const bodyMat = i === 0 ? brick : plaster
+    const bodyMat = i === 0 ? brick : i === 1 ? brick : plaster
 
-    if (lod === 0) {
+    if (lod < 2) {
       const body = new THREE.Mesh(truncatedPyramidGeo(halfB, halfT, h), bodyMat)
       body.position.y = y
       body.castShadow = true
       body.receiveShadow = true
       root.add(body)
 
-      const cornice = new THREE.Mesh(truncatedPyramidGeo(halfT + 0.35, halfT + 0.15, 0.35), stone)
-      cornice.position.y = y + h - 0.35
+      const cornice = new THREE.Mesh(truncatedPyramidGeo(halfT + 0.38, halfT + 0.16, 0.32), stone)
+      cornice.position.y = y + h - 0.32
       root.add(cornice)
 
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(halfT * 2 - 0.4, 0.28, halfT * 2 - 0.4), tile)
-      deck.position.y = y + h + 0.14
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(halfT * 2 - 0.35, 0.26, halfT * 2 - 0.35), tile)
+      scaleBoxUvToMeters(deck.geometry, halfT * 2 - 0.35, 0.26, halfT * 2 - 0.35, uvRepeat('gachBatTrang'))
+      deck.position.y = y + h + 0.13
       deck.receiveShadow = true
       root.add(deck)
 
-      const doorH = Math.min(3.2, h * 0.55)
-      const doorW = 2.4
-      const t = 0.35
-      const faceR = halfB * (1 - t) + halfT * t
+      const doorH = Math.min(3.0, h * 0.5)
+      const faceR = halfB * 0.62 + halfT * 0.38
+      const doorGeo = new THREE.BoxGeometry(2.2, doorH, 0.32)
+      scaleBoxUvToMeters(doorGeo, 2.2, doorH, 0.32, uvRepeat('goLim'))
       for (const face of [
         { x: 0, z: faceR, rotY: 0 },
         { x: 0, z: -faceR, rotY: 0 },
         { x: faceR, z: 0, rotY: Math.PI / 2 },
         { x: -faceR, z: 0, rotY: Math.PI / 2 },
       ]) {
-        const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.35), wood)
-        door.position.set(face.x, y + 0.4 + doorH / 2, face.z)
+        if (lod === 1 && i > 0 && face.z !== faceR) continue
+        const door = new THREE.Mesh(doorGeo, wood)
+        door.position.set(face.x, y + 0.45 + doorH / 2, face.z)
         door.rotation.y = face.rotY
         root.add(door)
       }
 
-      const postGeo = new THREE.BoxGeometry(0.7, h * 0.85, 0.7)
-      for (const sx of [-1, 1] as const) {
-        for (const sz of [-1, 1] as const) {
-          const post = new THREE.Mesh(postGeo, stone)
-          post.position.set(sx * halfB * 0.78, y + h * 0.42, sz * halfB * 0.78)
-          post.castShadow = true
-          root.add(post)
+      if (lod === 0) {
+        const postGeo = new THREE.BoxGeometry(0.65, h * 0.82, 0.65)
+        scaleBoxUvToMeters(postGeo, 0.65, h * 0.82, 0.65, uvRepeat('daThanh'))
+        for (const sx of [-1, 1] as const) {
+          for (const sz of [-1, 1] as const) {
+            const post = new THREE.Mesh(postGeo, stone)
+            post.position.set(sx * halfB * 0.76, y + h * 0.4, sz * halfB * 0.76)
+            post.castShadow = true
+            root.add(post)
+          }
         }
       }
+
+      root.add(railRing(halfT - 0.45, y + h + 0.14, lod === 0 ? 0 : 1, stone))
     } else {
       const body = frustumMesh(halfB, halfT, h, bodyMat, 4)
       body.position.y = y + h / 2
       root.add(body)
-
-      if (lod === 1) {
-        const deck = new THREE.Mesh(new THREE.BoxGeometry(halfT * 2 - 0.5, 0.22, halfT * 2 - 0.5), tile)
-        deck.position.y = y + h + 0.1
-        root.add(deck)
-        // single door cue on bottom tier only (draw-call budget)
-        if (i === 0) {
-          const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 0.3), wood)
-          door.position.set(0, y + 1.6, halfB * 0.72)
-          root.add(door)
-        }
-      }
     }
 
     deckYs.push(y + h)
     y += h
   }
 
-  // South stair — single InstancedMesh (draw-call friendly)
+  // Cầu thang Nam — thu dần theo mặt dốc
   if (lod < 2) {
-    const steps = lod === 0 ? 24 : 12
+    const steps = lod === 0 ? 28 : 16
     const totalH = deckYs[2] - 1.2
-    const stepGeo = new THREE.BoxGeometry(3.6, 0.22, 0.85)
+    const stepGeo = new THREE.BoxGeometry(3.4, 0.2, 0.78)
+    scaleBoxUvToMeters(stepGeo, 3.4, 0.2, 0.78, uvRepeat('daThanh'))
     const stair = new THREE.InstancedMesh(stepGeo, stone, steps)
     const dummy = new THREE.Object3D()
     for (let s = 0; s < steps; s++) {
       const t = (s + 0.5) / steps
-      dummy.position.set(0, 1.2 + t * totalH, tiers[0].halfB * (1 - t * 0.55) + 2.2 + t * 2.5)
-      dummy.scale.set(1 - t * 0.25, 1, 1)
+      dummy.position.set(0, 1.2 + t * totalH, tiers[0].halfB * (1 - t * 0.58) + 2.0 + t * 2.8)
+      dummy.scale.set(1 - t * 0.28, 1, 1)
       dummy.updateMatrix()
       stair.setMatrixAt(s, dummy.matrix)
     }
     stair.instanceMatrix.needsUpdate = true
     stair.castShadow = lod === 0
     stair.receiveShadow = true
+    stair.name = 'ky-dai-stair'
     root.add(stair)
-  }
 
-  // Top railing
-  if (lod < 2) {
-    const topHalf = tiers[2].halfT - 0.4
-    const railH = 0.85
-    const postCount = lod === 0 ? 8 : 5
-    const postGeo = new THREE.BoxGeometry(0.16, railH, 0.16)
-    const posts = new THREE.InstancedMesh(postGeo, stone, postCount * 4)
-    const dummy = new THREE.Object3D()
-    let idx = 0
-    const sides: Array<(u: number) => [number, number]> = [
-      (u) => [-topHalf + u * topHalf * 2, -topHalf],
-      (u) => [-topHalf + u * topHalf * 2, topHalf],
-      (u) => [-topHalf, -topHalf + u * topHalf * 2],
-      (u) => [topHalf, -topHalf + u * topHalf * 2],
-    ]
-    for (const side of sides) {
-      for (let i = 0; i < postCount; i++) {
-        const u = i / Math.max(1, postCount - 1)
-        const [px, pz] = side(u)
-        dummy.position.set(px, deckYs[2] + railH / 2, pz)
-        dummy.updateMatrix()
-        posts.setMatrixAt(idx++, dummy.matrix)
-      }
-    }
-    posts.instanceMatrix.needsUpdate = true
-    posts.castShadow = lod === 0
-    root.add(posts)
-
-    const railInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.1, 0.12), stone, 4)
-    const d2 = new THREE.Object3D()
-    const segs: Array<{ p: [number, number, number]; s: [number, number, number]; r: number }> = [
-      { p: [0, deckYs[2] + railH, -topHalf], s: [topHalf * 2, 1, 1], r: 0 },
-      { p: [0, deckYs[2] + railH, topHalf], s: [topHalf * 2, 1, 1], r: 0 },
-      { p: [-topHalf, deckYs[2] + railH, 0], s: [topHalf * 2, 1, 1], r: Math.PI / 2 },
-      { p: [topHalf, deckYs[2] + railH, 0], s: [topHalf * 2, 1, 1], r: Math.PI / 2 },
-    ]
-    segs.forEach((seg, i) => {
-      d2.position.set(...seg.p)
-      d2.rotation.set(0, seg.r, 0)
-      d2.scale.set(...seg.s)
-      d2.updateMatrix()
-      railInst.setMatrixAt(i, d2.matrix)
-    })
-    railInst.instanceMatrix.needsUpdate = true
-    root.add(railInst)
+    // Thành bậc hai bên
+    const cheekGeo = new THREE.BoxGeometry(0.32, totalH * 0.35, 8)
+    const cheekL = new THREE.Mesh(cheekGeo, stone)
+    cheekL.position.set(-2.1, 1.2 + totalH * 0.22, tiers[0].halfB + 4)
+    cheekL.rotation.x = -0.55
+    root.add(cheekL)
+    const cheekR = cheekL.clone()
+    cheekR.position.x = 2.1
+    root.add(cheekR)
   }
 
   const pole = buildFlagPole({
@@ -185,7 +200,7 @@ function buildKyDai(lod: 0 | 1 | 2): THREE.Group {
     lod,
     flag: lod < 2,
   })
-  pole.position.y = deckYs[2] + 0.2
+  pole.position.y = deckYs[2] + 0.22
   root.add(pole)
 
   return root

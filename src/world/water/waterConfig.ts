@@ -9,7 +9,8 @@ export const WATER_Y = -0.95
 /** Hồ Thái Dịch — trước Ngọ Môn / quanh cầu Trung Đạo [layout: ho-thai-dich ≈ (0,-1,55)] */
 export const HO_THAI_DICH = {
   id: 'ho-thai-dich' as const,
-  center: [0, WATER_Y, 55] as [number, number, number],
+  /** Just above the groundwork stone bed (y≈−0.02) / flattened terrain. */
+  center: [0, 0.08, 55] as [number, number, number],
   /** Đông–Tây × Bắc–Nam [ước lượng hợp lý — hai bên cầu Trung Đạo] */
   size: [110, 38] as [number, number],
   segments: [36, 14] as [number, number],
@@ -21,9 +22,11 @@ export const HO_THAI_DICH = {
  */
 export const HO_TINH_TAM = {
   id: 'ho-tinh-tam' as const,
-  center: [260, WATER_Y, -720] as [number, number, number],
-  size: [170, 210] as [number, number],
-  segments: [42, 48] as [number, number],
+  /** Khớp PLAN / WORLD.landmarks — không đè tường Bắc z≈−482. */
+  center: [220, 0.08, -620] as [number, number, number],
+  /** Đông–Tây × Bắc–Nam ~280 × 180 m [ước lượng hợp lý] */
+  size: [280, 180] as [number, number],
+  segments: [48, 32] as [number, number],
 }
 
 /**
@@ -52,7 +55,25 @@ export const NGU_HA = {
   widthSegs: 4,
 }
 
+/**
+ * Ngoại Kim Thủy — hào ôm Hoàng thành.
+ * Số đo [ước lượng hợp lý] — khớp `terrainConfig.IMPERIAL_MOAT`.
+ */
+export const NGOAI_KIM_THUY = {
+  id: 'ngoai-kim-thuy' as const,
+} as const
+
+/**
+ * Hồ Nội Kim Thủy — hào nhỏ ôm Tử Cấm (Đông / Tây / Bắc).
+ * [ước lượng hợp lý — research chưa khóa polygon]
+ */
+export const NOI_KIM_THUY = {
+  id: 'noi-kim-thuy' as const,
+} as const
+
 export type WaterBodyId =
   | typeof HO_THAI_DICH.id
   | typeof HO_TINH_TAM.id
   | typeof NGU_HA.id
+  | typeof NGOAI_KIM_THUY.id
+  | typeof NOI_KIM_THUY.id

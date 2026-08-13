@@ -1,13 +1,13 @@
 import * as THREE from 'three'
 import type { MonumentModule } from '../../core/types/MonumentModule'
-import { buildUPlatform } from './uPlatform'
+import { NGO_MON, ngoMonLayout } from './geometry'
 import { buildNguPhung } from './nguPhung'
-import { NGO_MON } from './geometry'
+import { buildUPlatform } from './uPlatform'
 
 /**
- * Ngọ Môn + Lầu Ngũ Phụng — WAVE B / B1.
- * Nền đài chữ U, 5 lối (giữa vua), lầu 2 tầng, 9 bộ mái, ~100 cột.
- * Anchor: buildings.json ngo-mon [0, 2, 118].
+ * Ngọ Môn + Lầu Ngũ Phụng.
+ * Nền đài chữ U, 5 lối xuyên (giữa vua), lầu 2 tầng, 9 bộ mái, ~100 cột.
+ * Anchor: buildings.json ngo-mon [0, 2, 118] — không đổi.
  */
 function buildNgoMon(lod: 0 | 1 | 2): THREE.Group {
   const root = new THREE.Group()
@@ -16,10 +16,10 @@ function buildNgoMon(lod: 0 | 1 | 2): THREE.Group {
   const platform = buildUPlatform(lod)
   root.add(platform)
 
+  const layout = ngoMonLayout()
   const pavilion = buildNguPhung(lod)
-  pavilion.position.y = NGO_MON.bodyHeight + NGO_MON.deckThickness
-  // Sit pavilion on north bar (slightly north of geometric center)
-  pavilion.position.z = -NGO_MON.depth / 2 + NGO_MON.armThickness * 0.55
+  pavilion.position.y = layout.deckY + 0.03 + NGO_MON.deckThickness
+  pavilion.position.z = layout.barZ
   root.add(pavilion)
 
   return root

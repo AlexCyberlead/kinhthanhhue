@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { buildRoof } from '../../core/geometry/kit'
 import { getMaterial } from '../../core/materials/MaterialLibrary'
 import { boxAt, mergeOrThrow, meshFrom } from './geometry'
 
@@ -89,6 +90,85 @@ export function collectColumnPositions(layout: TruongLangLayout): THREE.Vector3[
   }
 
   return out
+}
+
+/**
+ * Hành lang nối Thái Hòa ↔ Tả/Hữu Vu ↔ Đại Cung.
+ * World local (anchor sân Đại Triều). [ước lượng hợp lý]
+ */
+export function collectConnectorPositions(layout: TruongLangLayout): THREE.Vector3[] {
+  const { spacing } = layout
+  const out: THREE.Vector3[] = []
+  const xE = 36
+  const xW = -36
+  const zSouth = -layout.halfZ
+  const zNorth = -132
+  const nZ = Math.max(2, Math.floor((zSouth - zNorth) / spacing) + 1)
+  for (let i = 0; i < nZ; i++) {
+    const z = zSouth - i * spacing
+    if (z < zNorth - 0.5) break
+    out.push(new THREE.Vector3(xE, 0, z))
+    out.push(new THREE.Vector3(xW, 0, z))
+  }
+
+  const addEw = (z: number, xMin: number, xMax: number, gap: number) => {
+    const n = Math.max(2, Math.floor((xMax - xMin) / spacing) + 1)
+    for (let i = 0; i < n; i++) {
+      const x = xMin + i * spacing
+      if (Math.abs(x) < gap) continue
+      if (x > xMax + 0.2) break
+      out.push(new THREE.Vector3(x, 0, z))
+    }
+  }
+  addEw(-98, -40, 40, 8)
+  addEw(-125, -42, 42, 18)
+  return out
+}
+
+function addConnectorRuns(root: THREE.Group, layout: TruongLangLayout, lod: 0 | 1 | 2): void {
+  const brick = getMaterial('gach_bat_trang', lod)
+  const stone = getMaterial('da_thanh', lod)
+  const wood = getMaterial('go_lim', lod)
+  const floorH = 0.18
+  const plinthH = 0.32
+  const corridorW = 4.4
+  const beamY = 0.35 + layout.colH
+
+  const runs: Array<{ w: number; d: number; x: number; z: number }> = [
+    { w: corridorW, d: 74, x: 36, z: -95 },
+    { w: corridorW, d: 74, x: -36, z: -95 },
+    { w: 30, d: corridorW, x: -25, z: -98 },
+    { w: 30, d: corridorW, x: 25, z: -98 },
+    { w: 20, d: corridorW, x: -31, z: -125 },
+    { w: 20, d: corridorW, x: 31, z: -125 },
+  ]
+
+  const floorGeos: THREE.BufferGeometry[] = []
+  const stoneGeos: THREE.BufferGeometry[] = []
+  const woodGeos: THREE.BufferGeometry[] = []
+
+  for (const r of runs) {
+    floorGeos.push(boxAt(r.w, floorH, r.d, r.x, floorH / 2, r.z))
+    stoneGeos.push(boxAt(r.w + 0.4, plinthH, r.d + 0.4, r.x, plinthH / 2, r.z))
+    woodGeos.push(boxAt(r.w * 0.92, 0.2, r.d * 0.92, r.x, beamY, r.z))
+
+    if (lod < 2) {
+      const roof = buildRoof({
+        width: r.w + 1.1,
+        depth: r.d + 1.0,
+        tiers: 1,
+        tileMaterial: 'ngoi_thanh_luu_ly',
+        ridge: 'none',
+        lod,
+      })
+      roof.position.set(r.x, beamY + 0.22, r.z)
+      root.add(roof)
+    }
+  }
+
+  root.add(meshFrom(mergeOrThrow(floorGeos, 'conn-floor'), brick, 'truongLangConnFloor', false))
+  root.add(meshFrom(mergeOrThrow(stoneGeos, 'conn-stone'), stone, 'truongLangConnStone', lod < 2))
+  root.add(meshFrom(mergeOrThrow(woodGeos, 'conn-wood'), wood, 'truongLangConnWood', lod < 2))
 }
 
 function buildColumns(
@@ -298,7 +378,7 @@ export function buildTruongLang(lod: 0 | 1 | 2): THREE.Group {
   root.name = 'truong-lang'
 
   const layout = layoutForLod(lod)
-  const positions = collectColumnPositions(layout)
+  const positions = collectColumnPositions(layout).concat(collectConnectorPositions(layout))
 
   // Ensure ≥200 even if layout math drifts
   if (positions.length < 200) {
@@ -331,6 +411,8 @@ export function buildTruongLang(lod: 0 | 1 | 2): THREE.Group {
     root.add(buildRailPosts(layout, 0))
     root.add(buildRidgeCaps(layout, roofY, 0))
   }
+
+  addConnectorRuns(root, layout, lod)
 
   return root
 }

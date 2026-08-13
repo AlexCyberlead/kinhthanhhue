@@ -38,7 +38,8 @@ export const WORLD = {
     theToMieu: [-120, 0, -80] as [number, number, number],
     hienLamCac: [-120, 0, -50] as [number, number, number],
     daiCungMon: [0, 0, -90] as [number, number, number],
-    hoTinhTam: [180, 0, -420] as [number, number, number],
+    /** Dịch khỏi tường Bắc Hoàng thành (z≈−482). [ước lượng hợp lý — phiên 11] */
+    hoTinhTam: [220, 0, -620] as [number, number, number],
     nguHa: [0, 0, -380] as [number, number, number],
   },
   colors: {

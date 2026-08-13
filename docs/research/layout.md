@@ -83,6 +83,25 @@
 | Hào | Hồ **Ngoại Kim Thủy** bao quanh | [xác thực] |
 | Khởi / hoàn chỉnh cung điện | 1804 / ~1833 | [xác thực] |
 
+**Nội Kim Thủy — số dùng trong mesh (phiên 9)**
+
+| Thông số | Giá trị | Tag |
+| --- | --- | --- |
+| Ôm Tử Cấm 3 mặt (Đông/Tây/Bắc) | inner 166 × 149 từ tâm `[0, −235]` | [ước lượng hợp lý] |
+| Rộng mặt nước | **7.5 m** | [ước lượng hợp lý] — research chưa khóa polygon |
+| Bỏ cạnh Nam | giữ trục lễ Đại Cung | [ước lượng hợp lý] |
+| Cầu cửa | Hưng Khánh / Gia Tường / Tường Loan / Nghi Phụng | khớp `TUCAM` gaps |
+
+**Ngoại Kim Thủy — số dùng trong mesh (phiên 4)**
+
+| Thông số | Giá trị | Tag |
+| --- | --- | --- |
+| Ôm tường Hoàng thành | AABB 622 × 604, tâm `[0, −180]` | kích thước tường [xác thực]; tâm [ước lượng] |
+| Inset từ mặt tường | **4 m** | [ước lượng hợp lý] |
+| Rộng mặt nước | **18 m** | [ước lượng hợp lý] — không có số Hội Điển trong research |
+| Cạnh Nam | đẩy **+46 m** ra ngoài đài Ngọ Môn (module z≈155) | [ước lượng hợp lý] — để cổng không ngồi trong nước |
+| Cầu đất 4 cửa | Nam 16 m / 3 cửa còn lại 11 m | [ước lượng hợp lý] |
+
 ### 2.3. Tử Cấm thành (vòng trong)
 
 | Thông số | Giá trị | Độ tin cậy |
@@ -143,6 +162,7 @@ Gốc: tâm sân Đại Triều Nghi. `y` = cao độ nền ước lượng (m�
 | `cua-huu` | `[-980, 0, 750]` | Tây-Nam |
 | `dong-thanh-thuy-quan` | `[1100, 0, -200]` | Cửa thủy Đông (Ngự Hà) |
 | `tay-thanh-thuy-quan` | `[-1100, 0, -80]` | Cửa thủy Tây (Ngự Hà) |
+| `ho-tinh-tam` | `[220, 0, -620]` | Tâm hồ ~280×180 m; **dịch** khỏi `[180, −420]` vì đè tường Bắc Hoàng thành z≈−482. [ước lượng hợp lý — phiên 11] |
 | `tran-binh-dai` | `[1350, 0, -1100]` | Thành phụ Mang Cá |
 | Núi Ngự Bình (tiền án) | `[200, 105, 5200]` | ~4–5 km Nam; cao ~103–105 m |
 | Sông Hương (minh đường, gần) | `[0, -2, 1600]` | Đoạn trước mặt tiền thành |

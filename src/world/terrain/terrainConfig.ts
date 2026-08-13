@@ -38,6 +38,85 @@ export const MOAT = {
 } as const
 
 /**
+ * Hoàng thành AABB — 622 × 604 m, tâm [0, −180].
+ * [xác thực — kích thước; tâm ước lượng từ layout.md]
+ */
+export const IMPERIAL_CITY = {
+  centerX: 0,
+  centerZ: -180,
+  halfX: 311,
+  halfZ: 302,
+} as const
+
+/**
+ * Tử Cấm AABB — 324 × 290,7 m, tâm [0, −235].
+ * [xác thực — kích thước; tâm ước lượng từ layout.md]
+ */
+export const FORBIDDEN_CITY = {
+  centerX: 0,
+  centerZ: -235,
+  halfX: 162,
+  halfZ: 145.35,
+} as const
+
+/**
+ * Hồ Thái Dịch — trước sân Đại Triều / sau Ngọ Môn.
+ * [ước lượng hợp lý — khớp waterConfig HO_THAI_DICH]
+ */
+export const THAI_DICH = {
+  cx: 0,
+  cz: 55,
+  halfX: 55,
+  halfZ: 19,
+  waterY: 0.08,
+  bedY: -0.45,
+} as const
+
+/**
+ * Ngoại Kim Thủy — hào ôm Hoàng thành.
+ * Rộng / inset không có số Hội Điển trong research → [ước lượng hợp lý].
+ * Cạnh Nam đẩy ra ngoài Ngọ Môn (module z≈155) để cổng không ngồi trong nước.
+ */
+export const IMPERIAL_MOAT = {
+  inset: 4,
+  width: 18,
+  waterY: 0.05,
+  bedY: -0.55,
+  /** đẩy cạnh Nam ra sau đài Ngọ Môn */
+  southExtra: 46,
+  gateGapSouth: 16,
+  gateGap: 11,
+} as const
+
+/**
+ * Hồ Nội Kim Thủy — hào nhỏ ôm Tử Cấm (Đông/Tây/Bắc).
+ * [ước lượng hợp lý — research chưa khóa polygon]
+ */
+export const NOI_KIM_THUY = {
+  centerX: 0,
+  centerZ: -235,
+  innerHalfX: 166,
+  innerHalfZ: 149,
+  width: 7.5,
+  waterY: 0.06,
+  bedY: -0.38,
+  gateGap: 7,
+} as const
+
+/**
+ * Hồ Tịnh Tâm — Bắc / Đông-Bắc Hoàng thành, trong Kinh thành.
+ * [ước lượng hợp lý — PLAN phiên 11; dịch khỏi tường Bắc z≈−482]
+ */
+export const TINH_TAM = {
+  cx: 220,
+  cz: -620,
+  halfX: 140,
+  halfZ: 90,
+  waterY: 0.08,
+  bedY: -0.55,
+} as const
+
+/**
  * Sông Hương (minh đường) — task Z+700..900; WORLD.landmarks.songHuong z=750.
  * [ước lượng hợp lý — digital twin; layout.md ghi đoạn gần ~z=1600 ở scale cửa ngoài]
  */

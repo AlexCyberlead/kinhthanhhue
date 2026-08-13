@@ -6,6 +6,7 @@ import { buildPlatform } from '../../core/geometry/kit/buildPlatform'
 import { buildColumnGrid } from '../../core/geometry/kit/buildColumnGrid'
 import { buildBracketSet } from '../../core/geometry/kit/buildBracketSet'
 import { buildMieuCourtyard } from './courtyard'
+import { buildDinhHall } from '../noicung/buildDinhHall'
 
 export type BuildMieuOpts = {
   /** Roof tiers (trùng thiềm). */
@@ -22,6 +23,8 @@ export type BuildMieuOpts = {
   courtyard?: boolean
   courtyardWidth?: number
   courtyardDepth?: number
+  /** Tả hữu phối. */
+  sideHalls?: boolean
   name?: string
 }
 
@@ -40,6 +43,7 @@ export function buildMieu(opts: BuildMieuOpts): THREE.Group {
     courtyard = true,
     courtyardWidth,
     courtyardDepth,
+    sideHalls = false,
     name = 'mieu',
   } = opts
 
@@ -52,16 +56,36 @@ export function buildMieu(opts: BuildMieuOpts): THREE.Group {
   const platH = lod === 2 ? 0.9 : 1.15
 
   if (courtyard) {
-    const cw = courtyardWidth ?? hallW * 2.1
-    const cd = courtyardDepth ?? hallD * 2.4
+    const cw = courtyardWidth ?? hallW * 2.35
+    const cd = courtyardDepth ?? hallD * 2.7
     const court = buildMieuCourtyard({
       width: cw,
       depth: cd,
       lod,
       nghiMon: true,
     })
-    // Court sits under / around hall; hall at origin
     root.add(court)
+  }
+
+  if (sideHalls && lod < 2) {
+    const tile = roofMaterial === 'ngoi_hoang_luu_ly' ? 'ngoi_thanh_luu_ly' : roofMaterial
+    const sideTile = tile === 'ngoi_hoang_luu_ly' || tile === 'ngoi_thanh_luu_ly' ? tile : 'ngoi_thanh_luu_ly'
+    for (const sx of [-1, 1] as const) {
+      const wing = buildDinhHall({
+        width: 10,
+        depth: 7.5,
+        tiers: 1,
+        tile: sideTile,
+        columnsX: 3,
+        columnsZ: 2,
+        variant: 'office',
+        lod,
+        name: `${name}-phoi`,
+      })
+      wing.position.set(sx * (hallW * 0.78), 0, 2)
+      wing.rotation.y = sx * (Math.PI / 2)
+      root.add(wing)
+    }
   }
 
   // —— Platform ——
@@ -204,7 +228,12 @@ export function buildMieu(opts: BuildMieuOpts): THREE.Group {
     depth: hallD * (lod === 0 ? 1.22 : 1.12),
     tiers: safeTiers,
     tileMaterial: roofMaterial,
-    ridgeOrnament: lod === 0 && roofMaterial === 'ngoi_hoang_luu_ly' ? 'dragon' : 'none',
+    ridge:
+      lod < 2
+        ? roofMaterial === 'ngoi_hoang_luu_ly'
+          ? 'long-chau-nhat'
+          : 'bau-phap-lam'
+        : 'none',
     curvature: 0.9,
     lod,
   })

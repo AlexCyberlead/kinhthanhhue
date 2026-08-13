@@ -4,7 +4,7 @@
  */
 import { registerMonument, listMonuments } from './monuments'
 import type { MonumentModule } from '../core/types/MonumentModule'
-import { citadelGateModules } from '../monuments/gates'
+import { citadelGateModules, thuyQuanModules } from '../monuments/gates'
 import { kyDai, phuVanLau, nghinhLuongDinh } from '../monuments/kydai'
 import { vuModules } from '../monuments/vu'
 import { cungModules } from '../monuments/cung'
@@ -19,6 +19,8 @@ import { ngoMonModules } from '../monuments/ngomon'
 import { daiCungMon } from '../monuments/tucam'
 import { noiCungModules } from '../monuments/noicung'
 import { duyetThiModules } from '../monuments/duyetthi'
+import { hoangThanhModules } from '../monuments/hoangthanh'
+import { tinhTamModules } from '../monuments/tinhtam'
 
 let bootstrapped = false
 
@@ -33,6 +35,7 @@ export function bootstrapMonuments(): MonumentModule[] {
     // Skip tuong-hoang-thanh / tuong-tu-cam — walls via <ImperialWalls/> / <TuCamWalls/>.
     registerAll([
       ...citadelGateModules,
+      ...thuyQuanModules,
       kyDai,
       phuVanLau,
       nghinhLuongDinh,
@@ -49,6 +52,8 @@ export function bootstrapMonuments(): MonumentModule[] {
       daiCungMon,
       ...noiCungModules,
       ...duyetThiModules,
+      ...hoangThanhModules,
+      ...tinhTamModules,
     ])
     bootstrapped = true
   }

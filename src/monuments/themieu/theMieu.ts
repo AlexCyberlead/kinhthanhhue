@@ -5,6 +5,8 @@ import { buildRoof } from '../../core/geometry/kit/buildRoof'
 import { buildPlatform } from '../../core/geometry/kit/buildPlatform'
 import { buildColumnGrid } from '../../core/geometry/kit/buildColumnGrid'
 import { buildBracketSet } from '../../core/geometry/kit/buildBracketSet'
+import { buildDinhHall } from '../noicung/buildDinhHall'
+import { buildMieuCourtyard } from '../mieu/courtyard'
 
 /**
  * Thế Tổ Miếu (Thế Miếu) — điện thờ các vua Nguyễn.
@@ -23,20 +25,63 @@ function buildTheMieu(lod: 0 | 1 | 2): THREE.Group {
   const gold = getMaterial('vang_thep', lod)
   const phap = getMaterial('phap_lam', lod)
 
+  root.add(
+    buildMieuCourtyard({
+      width: lod === 2 ? 52 : 64,
+      depth: lod === 2 ? 38 : 48,
+      lod,
+      nghiMon: true,
+      wallHeight: lod === 2 ? 1.7 : 2.5,
+    }),
+  )
+
   const platform = buildPlatform({
-    width: lod === 2 ? 36 : 42,
+    width: lod === 2 ? 40 : 48,
     depth: lod === 2 ? 22 : 26,
     height: 1.4,
     steps: lod === 2 ? 2 : lod === 1 ? 4 : 6,
     balustrade: lod === 0,
     lod,
+    stepFace: 'south',
   })
   root.add(platform)
 
   const floorY = 1.4
-  const W = lod === 2 ? 28 : 34
+  // 9 gian stylized — WorldScene lod=1 vẫn hàng cột rộng
+  const W = lod === 2 ? 30 : 40
   const D = lod === 2 ? 16 : 18
   const wallH = lod === 2 ? 5.2 : 5.8
+
+  if (lod < 2) {
+    const left = buildDinhHall({
+      width: 12,
+      depth: 9,
+      tiers: 1,
+      tile: 'ngoi_thanh_luu_ly',
+      columnsX: 3,
+      columnsZ: 2,
+      variant: 'office',
+      lod,
+      name: 'the-mieu-ta-phoi',
+    })
+    left.position.set(-28, 0, 4)
+    left.rotation.y = Math.PI / 2
+    root.add(left)
+    const right = buildDinhHall({
+      width: 12,
+      depth: 9,
+      tiers: 1,
+      tile: 'ngoi_thanh_luu_ly',
+      columnsX: 3,
+      columnsZ: 2,
+      variant: 'office',
+      lod,
+      name: 'the-mieu-huu-phoi',
+    })
+    right.position.set(28, 0, 4)
+    right.rotation.y = -Math.PI / 2
+    root.add(right)
+  }
 
   // Floor paving
   const floor = new THREE.Mesh(new THREE.BoxGeometry(W - 0.6, 0.12, D - 0.6), brick)
@@ -101,11 +146,11 @@ function buildTheMieu(lod: 0 | 1 | 2): THREE.Group {
     root.add(plaqueRim)
   }
 
-  // Column grid — 3 rows × 7/5 cols (điện thờ gian rộng)
+  // 9 gian — 9 cột mặt tiền (lod2 rút 5)
   const cols = buildColumnGrid({
     rows: 3,
-    cols: lod === 0 ? 7 : 5,
-    spacing: lod === 0 ? ([4.6, 5.2] as [number, number]) : ([5.8, 5.5] as [number, number]),
+    cols: lod === 2 ? 5 : 9,
+    spacing: lod === 2 ? ([5.4, 5.2] as [number, number]) : ([4.4, 5.2] as [number, number]),
     height: wallH - 0.25,
     radius: 0.3,
     material: 'go_son_son',
@@ -144,7 +189,7 @@ function buildTheMieu(lod: 0 | 1 | 2): THREE.Group {
     depth: D * 1.08,
     tiers: lod === 0 ? 2 : 1,
     tileMaterial: 'ngoi_hoang_luu_ly',
-    ridgeOrnament: lod === 0 ? 'dragon' : 'none',
+    ridge: lod < 2 ? 'long-chau-nhat' : 'none',
     curvature: 0.92,
     lod,
   })
@@ -209,10 +254,10 @@ export const theMieu: MonumentModule = {
   build: buildTheMieu,
   anchor: [-95, 1, -90],
   rotationY: 0,
-  boundingRadius: 50,
+  boundingRadius: 62,
   poi: {
-    vi: 'Thế Tổ Miếu (Thế Miếu) — điện thờ các vua Nguyễn; mái hoàng/thanh lưu ly, cột son. Xây 1821, khu Tây-Nam Hoàng thành.',
-    en: 'The Mieu Temple — ancestral shrine of the Nguyễn emperors; yellow/green glazed roofs, vermillion columns. Built 1821, SW Imperial City.',
+    vi: 'Thế Tổ Miếu (Thế Miếu) — nhà chính 9 gian, sân, nghi môn, tả hữu phối; mái hoàng/thanh lưu ly. Xây 1821, khu Tây-Nam Hoàng thành.',
+    en: 'The Mieu Temple — 9-bay main hall, court, ceremonial gate and side halls; yellow/green glazed roofs. Built 1821, SW Imperial City.',
     year: '1821',
   },
 }

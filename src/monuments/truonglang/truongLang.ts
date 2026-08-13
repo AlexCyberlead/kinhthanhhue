@@ -12,10 +12,10 @@ export const truongLang: MonumentModule = {
   /** Tâm sân Đại Triều Nghi — hành lang chữ nhật quanh sân / hướng điện Thái Hòa. */
   anchor: [0, 0, 0],
   rotationY: 0,
-  boundingRadius: 95,
+  boundingRadius: 145,
   poi: {
-    vi: 'Trường Lang — hành lang bao quanh khu vực trung tâm Hoàng Thành (sân Đại Triều Nghi / hướng điện Thái Hòa). Hàng cột gỗ son, mái ngói thanh lưu ly, lan can đá. Anchor và quy mô [ước lượng].',
-    en: 'Long Corridor — colonnade enclosing the central Imperial City courtyard (Đại Triều Nghi / toward Thái Hòa Hall). Lacquered timber columns, green glazed-tile roofs, stone balustrades. Anchor and scale [estimated].',
+    vi: 'Trường Lang — hành lang bao quanh sân Đại Triều Nghi và nối Thái Hòa với Tả–Hữu Vu / Đại Cung môn. Hàng cột gỗ son, mái ngói thanh lưu ly. Anchor và quy mô [ước lượng].',
+    en: 'Long Corridor — colonnade around Đại Triều Nghi, linking Thái Hòa with the Left/Right Wings and Đại Cung Gate. Lacquered columns, green glazed-tile roofs. Anchor and scale [estimated].',
     year: '1805',
   },
 }

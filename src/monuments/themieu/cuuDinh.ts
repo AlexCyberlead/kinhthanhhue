@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { MonumentModule } from '../../core/types/MonumentModule'
 import { getMaterial } from '../../core/materials/MaterialLibrary'
 import { buildUrnGeometry, buildUrnPedestalGeometry } from './geometry'
@@ -37,12 +38,6 @@ function buildCuuDinh(lod: 0 | 1 | 2): THREE.Group {
   const originX = -((cols - 1) * spacingX) / 2
   const originZ = -((rows - 1) * spacingZ) / 2
 
-  const urnGeo = buildUrnGeometry(lod)
-  const urns = new THREE.InstancedMesh(urnGeo, bronze, 9)
-  urns.castShadow = lod < 2
-  urns.receiveShadow = true
-  urns.name = 'cuuDinhUrns'
-
   const pedGeo = buildUrnPedestalGeometry()
   const peds = new THREE.InstancedMesh(pedGeo, stone, 9)
   peds.castShadow = lod < 2
@@ -50,6 +45,7 @@ function buildCuuDinh(lod: 0 | 1 | 2): THREE.Group {
   peds.name = 'cuuDinhPedestals'
 
   const dummy = new THREE.Object3D()
+  const urnParts: THREE.BufferGeometry[] = []
   let i = 0
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -57,27 +53,36 @@ function buildCuuDinh(lod: 0 | 1 | 2): THREE.Group {
       const z = originZ + r * spacingZ
       const s = URN_SCALES[i] * (lod === 2 ? 0.85 : 1)
 
-      // Pedestal
       dummy.position.set(x, 0.18, z)
       dummy.scale.set(1, 1, 1)
       dummy.rotation.set(0, 0, 0)
       dummy.updateMatrix()
       peds.setMatrixAt(i, dummy.matrix)
 
-      // Urn on pedestal — height ~2.0 m base × scale (stylized tonnage)
+      const geo = buildUrnGeometry(lod, i)
       dummy.position.set(x, 0.18 + 0.35, z)
       dummy.scale.set(s, s, s)
-      dummy.rotation.y = (i % 3) * 0.15 // slight orientation variety
+      dummy.rotation.y = (i % 3) * 0.18
       dummy.updateMatrix()
-      urns.setMatrixAt(i, dummy.matrix)
+      geo.applyMatrix4(dummy.matrix)
+      urnParts.push(geo)
       i++
     }
   }
-  urns.instanceMatrix.needsUpdate = true
   peds.instanceMatrix.needsUpdate = true
+  root.add(peds)
 
-  root.add(peds, urns)
-  // Total draw calls: pad + peds + urns = 3
+  const mergedUrns = urnParts.length === 1 ? urnParts[0] : mergeGeometries(urnParts, false)
+  if (urnParts.length > 1) {
+    for (const g of urnParts) g.dispose()
+  }
+  if (mergedUrns) {
+    const urns = new THREE.Mesh(mergedUrns, bronze)
+    urns.castShadow = lod < 2
+    urns.receiveShadow = true
+    urns.name = 'cuuDinhUrns'
+    root.add(urns)
+  }
 
   return root
 }

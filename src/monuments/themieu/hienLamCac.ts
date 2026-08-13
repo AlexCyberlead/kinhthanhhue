@@ -5,6 +5,7 @@ import { buildRoof } from '../../core/geometry/kit/buildRoof'
 import { buildPlatform } from '../../core/geometry/kit/buildPlatform'
 import { buildColumnGrid } from '../../core/geometry/kit/buildColumnGrid'
 import { buildBracketSet } from '../../core/geometry/kit/buildBracketSet'
+import { buildBauRuouRidge } from '../../core/geometry/kit/ornament'
 
 /**
  * Hiển Lâm Các — 3 tầng gỗ, cao ~17 m, cao nhất Đại Nội.
@@ -21,8 +22,7 @@ function buildHienLamCac(lod: 0 | 1 | 2): THREE.Group {
   const stone = getMaterial('da_thanh', lod)
   const brick = getMaterial('gach_bat_trang', lod)
   const gachVo = getMaterial('gach_vo', lod)
-  const gold = getMaterial('vang_thep', lod)
-  const phap = getMaterial('phap_lam', lod)
+
 
   // Platform — bó gạch vồ + lát Bát Tràng
   const platformH = 1.2
@@ -118,15 +118,15 @@ function buildHienLamCac(lod: 0 | 1 | 2): THREE.Group {
         }
       }
 
-      // Perimeter columns per floor (Instanced) — total across floors ≤ ~20 extra
-      if (lod === 0 || t === 0) {
+      // 24 cột: 4 xuyên + 12 tầng 1 + 8 tầng 2 (lod 0–1)
+      if (t === 0 || (lod < 2 && t === 1)) {
         const peri = buildColumnGrid({
-          rows: 3,
-          cols: t === 0 ? 4 : 3,
+          rows: t === 0 ? 3 : 2,
+          cols: t === 0 ? 4 : 4,
           spacing:
             t === 0
               ? ([3.4, 3.8] as [number, number])
-              : ([2.8, 2.6] as [number, number]),
+              : ([2.6, 2.8] as [number, number]),
           height: h - 0.15,
           radius: t === 0 ? 0.22 : 0.18,
           material: 'go_son_son',
@@ -167,21 +167,21 @@ function buildHienLamCac(lod: 0 | 1 | 2): THREE.Group {
       depth: d * 1.2,
       tiers: lod === 0 && t === 2 ? 2 : 1,
       tileMaterial: 'ngoi_thanh_luu_ly',
-      ridgeOrnament: lod === 0 && t === 2 ? 'dragon' : 'none',
+      ridge: lod < 2 && t === 2 ? 'bau-phap-lam' : 'none',
       curvature: 0.88,
       lod,
     })
     roof.position.y = roofY
     root.add(roof)
 
-    if (lod === 0 && t < 2) {
-      // Extra wrap roof → approach ~12 mái silhouette without exploding tris
+    // Wrap eave mỗi tầng — lod 0–1 đọc 12 mặt mái (3 tầng × 4 phía + diềm)
+    if (lod < 2 && t < 2) {
       const wrap = buildRoof({
         width: w * 1.32,
         depth: d * 1.35,
         tiers: 1,
         tileMaterial: 'ngoi_thanh_luu_ly',
-        ridgeOrnament: 'none',
+        ridge: 'none',
         curvature: 0.75,
         lod,
       })
@@ -194,15 +194,10 @@ function buildHienLamCac(lod: 0 | 1 | 2): THREE.Group {
     yCursor = roofY + roofRise
   }
 
-  // Bầu rượu pháp lam on apex — LOD0
-  if (lod === 0) {
-    const apexY = yCursor + 0.2
-    const bottle = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 4, 8), phap)
-    bottle.position.y = apexY
-    root.add(bottle)
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), gold)
-    cap.position.y = apexY + 0.55
-    root.add(cap)
+  if (lod < 2) {
+    const bau = buildBauRuouRidge({ count: 1, scale: 1.15, lod })
+    bau.position.y = yCursor + 0.15
+    root.add(bau)
   }
 
   // Stone stair rail accents — LOD0

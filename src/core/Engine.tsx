@@ -38,8 +38,8 @@ export function Engine({ children }: EngineProps) {
         gl.shadowMap.enabled = true
         gl.shadowMap.type = THREE.PCFSoftShadowMap
         // Fallback until SkySystem mounts; sky syncs fog/background via lights frame
-        scene.background = new THREE.Color('#87a0b8')
-        scene.fog = new THREE.FogExp2('#9bb0c4', 0.00035)
+        scene.background = new THREE.Color('#7a8ea0')
+        scene.fog = new THREE.FogExp2('#7a7468', 0.00016)
       }}
     >
       <AdaptiveDpr pixelated />

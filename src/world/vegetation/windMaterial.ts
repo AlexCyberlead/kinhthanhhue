@@ -12,10 +12,11 @@ export type WindMaterialOpts = {
 export function createWindMaterial(opts: WindMaterialOpts): THREE.MeshStandardMaterial {
   const { windStrength, enableWind = true } = opts
   const mat = new THREE.MeshStandardMaterial({
-    roughness: 0.88,
-    metalness: 0.02,
+    roughness: 0.86,
+    metalness: 0,
     vertexColors: true,
     side: THREE.DoubleSide,
+    envMapIntensity: 0.28,
   })
 
   if (!enableWind || windStrength <= 0) {

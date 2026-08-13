@@ -25,8 +25,9 @@ export const thaiMieu: MonumentModule = {
       roofMaterial: 'ngoi_hoang_luu_ly',
       scale: 1.15,
       courtyard: true,
-      courtyardWidth: 48,
-      courtyardDepth: 42,
+      courtyardWidth: 52,
+      courtyardDepth: 46,
+      sideHalls: true,
       lod,
     })
   },

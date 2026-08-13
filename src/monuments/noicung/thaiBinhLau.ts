@@ -158,7 +158,7 @@ function buildThaiBinhLau(lod: 0 | 1 | 2): THREE.Group {
     depth: lod === 0 ? D * 0.8 : D * 0.72,
     tiers: lod === 0 ? 2 : 1,
     tileMaterial: 'ngoi_thanh_luu_ly',
-    ridgeOrnament: lod === 0 ? 'phoenix' : 'none',
+    ridge: lod < 2 ? 'phuong' : 'none',
     curvature: 0.9,
     lod,
   })

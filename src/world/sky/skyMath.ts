@@ -61,6 +61,7 @@ export type SkyPalette = {
   cloudOpacity: number
   starOpacity: number
   turbidity: number
+  fogDensity: number
 }
 
 const _zenith = new THREE.Color()
@@ -100,16 +101,22 @@ export function computeSkyPalette(
   _zenith.lerp(tint, 0.08 * day)
   _horizon.lerp(tint, 0.12 * day)
 
-  _fog.copy(_horizon).lerp(_zenith, 0.25)
-  if (raining) _fog.lerp(new THREE.Color('#8A9196'), 0.35)
+  // Dusty ground-tinted fog — not a white wash over the citadel.
+  _fog.copy(_horizon).lerp(_ground, 0.42).lerp(_zenith, 0.1)
+  _fog.multiplyScalar(0.78)
+  if (raining) _fog.lerp(new THREE.Color('#6e7478'), 0.4)
 
-  _sunCol.set('#fff4d6').lerp(new THREE.Color('#ff8a3a'), twilight)
+  _sunCol.set('#fff1c8').lerp(new THREE.Color('#ff8a3a'), twilight)
   _moonCol.set('#c8d4e8')
 
-  const sunIntensity = THREE.MathUtils.lerp(0.05, raining ? 0.55 : 1.45, day)
+  // 10:00 default: hard key so version-1 normals (ngói / cột / gạch) read.
+  const sunIntensity = THREE.MathUtils.lerp(0.05, raining ? 0.62 : 1.85, day)
   const moonIntensity = THREE.MathUtils.lerp(0.28, 0.02, day)
-  const ambientIntensity = THREE.MathUtils.lerp(0.06, raining ? 0.22 : 0.32, day)
-  const hemiIntensity = THREE.MathUtils.lerp(0.08, raining ? 0.28 : 0.48, day)
+  const ambientIntensity = THREE.MathUtils.lerp(0.05, raining ? 0.16 : 0.14, day)
+  const hemiIntensity = THREE.MathUtils.lerp(0.06, raining ? 0.2 : 0.26, day)
+  const fogDensity = raining
+    ? THREE.MathUtils.lerp(0.00012, 0.00028, day)
+    : THREE.MathUtils.lerp(0.00008, 0.00016, day)
 
   _hemiSky.copy(_zenith).lerp(new THREE.Color('#cfe4ff'), day * 0.4)
   _hemiGround.copy(_ground)
@@ -135,9 +142,10 @@ export function computeSkyPalette(
     hemiSky: _hemiSky.clone(),
     hemiGround: _hemiGround.clone(),
     hemiIntensity,
-    exposure: THREE.MathUtils.lerp(0.55, raining ? 0.85 : 1.1, day),
+    exposure: THREE.MathUtils.lerp(0.55, raining ? 0.82 : 0.98, day),
     cloudOpacity,
     starOpacity,
     turbidity,
+    fogDensity,
   }
 }

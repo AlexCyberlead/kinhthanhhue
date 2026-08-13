@@ -47,17 +47,18 @@ const ZONES = {
     radius: 140,
     y: 0,
   } satisfies DiskZone,
-  /** Hai bên trục thần đạo (Ngọ Môn → Thái Hòa). */
-  axisEast: { cx: 38, cz: 40, hx: 22, hz: 110, y: 0 } satisfies RectZone,
-  axisWest: { cx: -38, cz: 40, hx: 22, hz: 110, y: 0 } satisfies RectZone,
+  /** Hai bên trục thần đạo — tránh mặt hồ Thái Dịch (z≈55). */
+  axisEast: { cx: 44, cz: 40, hx: 14, hz: 110, y: 0 } satisfies RectZone,
+  axisWest: { cx: -44, cz: 40, hx: 14, hz: 110, y: 0 } satisfies RectZone,
   /** Vườn Thiệu Phương (Đông nội đình) — ước lượng. */
   thieuPhuong: { cx: 140, cz: -210, hx: 70, hz: 55, y: 0 } satisfies RectZone,
   /** Vườn Cơ Hạ (Tây) — ước lượng. */
   coHa: { cx: -150, cz: -230, hx: 65, hz: 50, y: 0 } satisfies RectZone,
   /** Hồ Thái Dịch (trước Ngọ Môn / sân triều). */
   hoThaiDich: { cx: 0, cz: 55, hx: 70, hz: 28, y: 0.05 } satisfies RectZone,
-  /** Hồ Tịnh Tâm — NE ngoài Hoàng thành (ước lượng). */
-  hoTinhTam: { cx: 220, cz: -520, hx: 110, hz: 75, y: 0.05 } satisfies RectZone,
+  /** Hồ Tịnh Tâm — Bắc/Đông-Bắc Hoàng thành [220, −620], 280×180. */
+  hoTinhTam: { cx: 220, cz: -620, hx: 140, hz: 90, y: 0.05 } satisfies RectZone,
+  hoTinhTamShore: { cx: 220, cz: -620, hx: 148, hz: 98, y: 0 } satisfies RectZone,
   /** Ao Liên Trì trong vườn — ước lượng. */
   aoLienTri: { cx: 130, cz: -200, hx: 22, hz: 16, y: 0.05 } satisfies RectZone,
   /** Ngoài tường / đường phố — phượng, nhãn. */
@@ -72,6 +73,86 @@ const ZONES = {
     radius: 50,
     y: 0,
   } satisfies DiskZone,
+}
+
+const TINH_ISLANDS: Array<{ cx: number; cz: number; hx: number; hz: number }> = [
+  { cx: 220, cz: -575, hx: 24, hz: 18 },
+  { cx: 285, cz: -655, hx: 16, hz: 13 },
+  { cx: 155, cz: -658, hx: 14, hz: 12 },
+]
+
+function onTinhIsland(x: number, z: number): boolean {
+  for (const i of TINH_ISLANDS) {
+    if (Math.abs(x - i.cx) < i.hx && Math.abs(z - i.cz) < i.hz) return true
+  }
+  return false
+}
+
+function inThaiDich(x: number, z: number): boolean {
+  return (
+    Math.abs(x - ZONES.hoThaiDich.cx) < ZONES.hoThaiDich.hx - 6 &&
+    Math.abs(z - ZONES.hoThaiDich.cz) < ZONES.hoThaiDich.hz + 1
+  )
+}
+
+function inTinhTamWaterXZ(x: number, z: number): boolean {
+  if (onTinhIsland(x, z)) return false
+  const u = Math.abs(x - ZONES.hoTinhTam.cx) / ZONES.hoTinhTam.hx
+  const v = Math.abs(z - ZONES.hoTinhTam.cz) / ZONES.hoTinhTam.hz
+  return Math.max(u, v) < 0.9
+}
+
+function inLienTri(x: number, z: number): boolean {
+  return (
+    Math.abs(x - ZONES.aoLienTri.cx) < ZONES.aoLienTri.hx &&
+    Math.abs(z - ZONES.aoLienTri.cz) < ZONES.aoLienTri.hz
+  )
+}
+
+function inWaterBody(x: number, z: number): boolean {
+  return inThaiDich(x, z) || inTinhTamWaterXZ(x, z) || inLienTri(x, z)
+}
+
+/** Thần đạo + mặt hồ — cây cạn không được đứng đây. */
+function onThanDao(x: number, z: number): boolean {
+  return Math.abs(x) < 9 && z > -220 && z < 175
+}
+
+function sampleLand(rng: () => number, fn: ZoneSampler): Placement {
+  for (let i = 0; i < 12; i++) {
+    const p = fn(rng)
+    if (!inWaterBody(p.x, p.z) && !onThanDao(p.x, p.z)) return p
+  }
+  const p = fn(rng)
+  if (onThanDao(p.x, p.z)) p.x += p.x >= 0 ? 16 : -16
+  if (inThaiDich(p.x, p.z)) p.z = ZONES.hoThaiDich.cz + ZONES.hoThaiDich.hz + 14
+  if (inTinhTamWaterXZ(p.x, p.z)) p.x = ZONES.hoTinhTam.cx + ZONES.hoTinhTam.hx + 6
+  return p
+}
+
+/** Bờ hồ — trong vành, ngoài mặt nước lõi. */
+function inTinhTamShore(rng: () => number): Placement {
+  const z = ZONES.hoTinhTamShore
+  for (let k = 0; k < 8; k++) {
+    const p = inRect(rng, z)
+    const u = Math.abs(p.x - z.cx) / ZONES.hoTinhTam.hx
+    const v = Math.abs(p.z - z.cz) / ZONES.hoTinhTam.hz
+    const r = Math.max(u, v)
+    if (r > 0.82 && r < 1.08 && !onTinhIsland(p.x, p.z)) return p
+  }
+  return { x: z.cx + z.hx, y: 0, z: z.cz, rotY: 0, scale: 1 }
+}
+
+function inTinhTamWater(rng: () => number): Placement {
+  for (let k = 0; k < 8; k++) {
+    const p = inRect(rng, ZONES.hoTinhTam)
+    if (!onTinhIsland(p.x, p.z)) {
+      const u = Math.abs(p.x - ZONES.hoTinhTam.cx) / ZONES.hoTinhTam.hx
+      const v = Math.abs(p.z - ZONES.hoTinhTam.cz) / ZONES.hoTinhTam.hz
+      if (Math.max(u, v) < 0.88) return p
+    }
+  }
+  return inRect(rng, ZONES.hoThaiDich)
 }
 
 function inRect(rng: () => number, z: RectZone): Placement {
@@ -142,64 +223,76 @@ function pickWeighted(rng: () => number, items: { w: number; fn: ZoneSampler }[]
 
 const SPECIES_SAMPLERS: Record<VegetationSpeciesId, ZoneSampler> = {
   tree_tre: (rng) =>
-    pickWeighted(rng, [
-      { w: 7, fn: (r) => inSquareRing(r, ZONES.moat) },
-      { w: 2, fn: (r) => inRect(r, ZONES.hoTinhTam) },
-      { w: 1, fn: (r) => inRect(r, ZONES.coHa) },
-    ]),
+    sampleLand(rng, (r) =>
+      pickWeighted(r, [
+        { w: 7, fn: (s) => inSquareRing(s, ZONES.moat) },
+        { w: 2, fn: () => inTinhTamShore(rng) },
+        { w: 1, fn: (s) => inRect(s, ZONES.coHa) },
+      ]),
+    ),
 
   tree_phuong_vi: (rng) =>
-    pickWeighted(rng, [
-      { w: 4, fn: (r) => inDisk(r, ZONES.kyDai) },
-      { w: 3, fn: (r) => inRect(r, ZONES.urbanSouth) },
-      { w: 2, fn: (r) => inRect(r, ZONES.urbanEast) },
-      { w: 1, fn: (r) => inRect(r, ZONES.urbanWest) },
-    ]),
+    sampleLand(rng, (r) =>
+      pickWeighted(r, [
+        { w: 4, fn: (s) => inDisk(s, ZONES.kyDai) },
+        { w: 3, fn: (s) => inRect(s, ZONES.urbanSouth) },
+        { w: 2, fn: (s) => inRect(s, ZONES.urbanEast) },
+        { w: 1, fn: (s) => inRect(s, ZONES.urbanWest) },
+      ]),
+    ),
 
   tree_nhan: (rng) =>
-    pickWeighted(rng, [
-      { w: 3, fn: (r) => inRect(r, ZONES.urbanSouth) },
-      { w: 2, fn: (r) => inRect(r, ZONES.urbanEast) },
-      { w: 2, fn: (r) => inRect(r, ZONES.urbanWest) },
-      { w: 2, fn: (r) => inDisk(r, ZONES.kyDai) },
-      { w: 1, fn: (r) => inRect(r, ZONES.thieuPhuong) },
-    ]),
+    sampleLand(rng, (r) =>
+      pickWeighted(r, [
+        { w: 3, fn: (s) => inRect(s, ZONES.urbanSouth) },
+        { w: 2, fn: (s) => inRect(s, ZONES.urbanEast) },
+        { w: 2, fn: (s) => inRect(s, ZONES.urbanWest) },
+        { w: 2, fn: (s) => inDisk(s, ZONES.kyDai) },
+        { w: 1, fn: (s) => inRect(s, ZONES.thieuPhuong) },
+      ]),
+    ),
 
   tree_ngo_dong: (rng) =>
-    pickWeighted(rng, [
-      { w: 4, fn: (r) => inRect(r, ZONES.axisEast) },
-      { w: 4, fn: (r) => inRect(r, ZONES.axisWest) },
-      { w: 1, fn: (r) => inDisk(r, { cx: 0, cz: -40, radius: 35, y: 0 }) },
-    ]),
+    sampleLand(rng, (r) =>
+      pickWeighted(r, [
+        { w: 4, fn: (s) => inRect(s, ZONES.axisEast) },
+        { w: 4, fn: (s) => inRect(s, ZONES.axisWest) },
+        { w: 1, fn: (s) => inDisk(s, { cx: 0, cz: -40, radius: 35, y: 0 }) },
+      ]),
+    ),
 
   tree_su_dai: (rng) =>
-    pickWeighted(rng, [
-      { w: 4, fn: (r) => inRect(r, ZONES.thieuPhuong) },
-      { w: 3, fn: (r) => inRect(r, ZONES.coHa) },
-      { w: 2, fn: (r) => inDisk(r, ZONES.mieuCorner) },
-      { w: 1, fn: (r) => inDisk(r, ZONES.kyDai) },
-    ]),
+    sampleLand(rng, (r) =>
+      pickWeighted(r, [
+        { w: 4, fn: (s) => inRect(s, ZONES.thieuPhuong) },
+        { w: 3, fn: (s) => inRect(s, ZONES.coHa) },
+        { w: 2, fn: (s) => inDisk(s, ZONES.mieuCorner) },
+        { w: 1, fn: (s) => inDisk(s, ZONES.kyDai) },
+      ]),
+    ),
 
   plant_sen: (rng) =>
     pickWeighted(rng, [
-      { w: 6, fn: (r) => inRect(r, ZONES.hoTinhTam) },
+      { w: 6, fn: () => inTinhTamWater(rng) },
       { w: 3, fn: (r) => inRect(r, ZONES.hoThaiDich) },
       { w: 2, fn: (r) => inRect(r, ZONES.aoLienTri) },
     ]),
 
   plant_sung: (rng) =>
     pickWeighted(rng, [
-      { w: 4, fn: (r) => inRect(r, { ...ZONES.hoTinhTam, hx: 120, hz: 85 }) },
+      { w: 4, fn: () => inTinhTamWater(rng) },
       { w: 3, fn: (r) => inRect(r, ZONES.hoThaiDich) },
       { w: 2, fn: (r) => inSquareRing(r, { halfOuter: 1120, halfInner: 1090, y: 0.04 }) },
     ]),
 
   tree_thong: (rng) =>
-    pickWeighted(rng, [
-      { w: 5, fn: (r) => inRect(r, ZONES.giaSon) },
-      { w: 3, fn: (r) => inDisk(r, ZONES.mieuCorner) },
-      { w: 2, fn: (r) => inRect(r, ZONES.coHa) },
-    ]),
+    sampleLand(rng, (r) =>
+      pickWeighted(r, [
+        { w: 5, fn: (s) => inRect(s, ZONES.giaSon) },
+        { w: 3, fn: (s) => inDisk(s, ZONES.mieuCorner) },
+        { w: 2, fn: (s) => inRect(s, ZONES.coHa) },
+      ]),
+    ),
 }
 
 export type SpeciesPlacements = {

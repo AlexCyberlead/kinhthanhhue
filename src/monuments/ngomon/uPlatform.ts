@@ -1,312 +1,435 @@
 import * as THREE from 'three'
+import { extrudeWallGeometry } from '../../core/geometry/kit/buildWall'
+import { dragonOrnamentGeo, hoiVanBandGeo } from '../../core/geometry/kit/ornament'
+import { copyUvToUv2, scaleBoxUvToMeters, uvRepeat } from '../../core/geometry/kit/uvMeters'
 import { getMaterial } from '../../core/materials/MaterialLibrary'
-import { NGO_MON } from './geometry'
+import {
+  archDressingGeo,
+  buildNgoMonBarGeo,
+  mergeOrNull,
+  meterBox,
+  NGO_MON,
+  ngoMonLayout,
+  ngoMonOpenings,
+  type Lod,
+} from './geometry'
 
 /**
- * Nền đài chữ U — mở về Nam (+Z), 5 lối đi (giữa dành vua).
- * Gạch vồ + đá thanh + bậc + lan can.
- * LOD1 giữ draw-call thấp: InstancedMesh cho openings / posts.
+ * Nền đài chữ U — mở Nam (+Z), 5 lối xuyên (giữa vua, thành bậc rồng).
+ * Gạch vồ + đá thanh + sân Bát Tràng + lan can con tiện.
  */
-export function buildUPlatform(lod: 0 | 1 | 2): THREE.Group {
+export function buildUPlatform(lod: Lod): THREE.Group {
   const g = new THREE.Group()
   g.name = 'u-platform'
 
   const brick = getMaterial('gach_vo', lod)
   const stone = getMaterial('da_thanh', lod)
   const tile = getMaterial('gach_bat_trang', lod)
-  const wood = getMaterial('go_lim', lod)
+  const lam = getMaterial('phap_lam', lod)
 
-  const { width: W, depth: D, armThickness: A, bodyHeight: H } = NGO_MON
-  const courtW = W - 2 * A
-  const courtD = D - A
-  const barZ = -D / 2 + A / 2
-  const armCenterZ = -D / 2 + A + courtD / 2
-
-  // --- Mass: north bar + east/west arms ---
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(W, H, A), brick)
-  bar.position.set(0, H / 2, barZ)
-  bar.castShadow = true
-  bar.receiveShadow = true
-  g.add(bar)
-
-  const armGeo = new THREE.BoxGeometry(A, H, courtD)
-  for (const sx of [-1, 1] as const) {
-    const arm = new THREE.Mesh(armGeo, brick)
-    arm.position.set(sx * (W / 2 - A / 2), H / 2, armCenterZ)
-    arm.castShadow = true
-    arm.receiveShadow = true
-    g.add(arm)
-  }
-
-  // Stone plinth
-  if (lod < 2) {
-    const plinthH = 0.55
-    const plinth = new THREE.Mesh(new THREE.BoxGeometry(W + 0.8, plinthH, D + 0.8), stone)
-    plinth.position.y = plinthH / 2
-    plinth.receiveShadow = true
-    g.add(plinth)
-
-    if (lod === 0) {
-      const band = new THREE.Mesh(new THREE.BoxGeometry(W + 0.15, 0.28, A + 0.15), stone)
-      band.position.set(0, H * 0.55, barZ)
-      g.add(band)
-    }
-  }
-
-  // Deck
-  const deckY = H
-  const deckT = NGO_MON.deckThickness
-  const deckN = new THREE.Mesh(new THREE.BoxGeometry(W, deckT, A), tile)
-  deckN.position.set(0, deckY + deckT / 2, barZ)
-  deckN.receiveShadow = true
-  g.add(deckN)
-
-  if (lod < 2) {
-    const deckArmGeo = new THREE.BoxGeometry(A, deckT, courtD)
-    for (const sx of [-1, 1] as const) {
-      const d = new THREE.Mesh(deckArmGeo, tile)
-      d.position.set(sx * (W / 2 - A / 2), deckY + deckT / 2, armCenterZ)
-      d.receiveShadow = true
-      g.add(d)
-    }
-
-    const court = new THREE.Mesh(new THREE.BoxGeometry(courtW - 0.4, 0.12, courtD - 0.2), brick)
-    court.position.set(0, 0.06, armCenterZ)
-    court.receiveShadow = true
-    g.add(court)
-  }
-
-  // --- 5 openings ---
-  const faceZ = barZ + A / 2 - 0.15
-  const oh = NGO_MON.openingH
-  const spacing = NGO_MON.openingSpacing
-  const openingXs = [-2, -1, 0, 1, 2].map((i) => i * spacing)
-  const sideW = NGO_MON.openingWSide
-  const royalW = NGO_MON.openingWRoyal
+  const { width: W, depth: D, armThickness: A, bodyHeight: H, deckThickness: deckT } = NGO_MON
+  const L = ngoMonLayout()
+  const openings = ngoMonOpenings()
 
   if (lod === 2) {
-    const dark = getMaterial('go_lim', lod)
-    const sideGeo = new THREE.BoxGeometry(sideW * 0.95, oh * 0.95, 1.2)
-    const sides = new THREE.InstancedMesh(sideGeo, dark, 4)
-    const dummy = new THREE.Object3D()
-    let idx = 0
-    for (let i = 0; i < 5; i++) {
-      if (i === 2) continue
-      dummy.position.set(openingXs[i], oh * 0.48, faceZ)
-      dummy.updateMatrix()
-      sides.setMatrixAt(idx++, dummy.matrix)
-    }
-    sides.instanceMatrix.needsUpdate = true
-    g.add(sides)
-    const royal = new THREE.Mesh(new THREE.BoxGeometry(royalW * 0.95, oh * 0.95, 1.2), dark)
-    royal.position.set(0, oh * 0.48, faceZ)
-    g.add(royal)
-  } else if (lod === 1) {
-    // 4 side recesses + 1 royal + 1 lintel instance set
-    const recessGeo = new THREE.BoxGeometry(sideW, oh, A * 0.92)
-    const recesses = new THREE.InstancedMesh(recessGeo, wood, 4)
-    const dummy = new THREE.Object3D()
-    let idx = 0
-    for (let i = 0; i < 5; i++) {
-      if (i === 2) continue
-      dummy.position.set(openingXs[i], oh / 2 + 0.15, barZ)
-      dummy.updateMatrix()
-      recesses.setMatrixAt(idx++, dummy.matrix)
-    }
-    recesses.instanceMatrix.needsUpdate = true
-    g.add(recesses)
-
-    const royal = new THREE.Mesh(new THREE.BoxGeometry(royalW, oh, A * 0.92), wood)
-    royal.position.set(0, oh / 2 + 0.15, barZ)
-    g.add(royal)
-
-    const lintelGeo = new THREE.BoxGeometry(sideW + 0.9, 0.5, A * 0.5)
-    const lintels = new THREE.InstancedMesh(lintelGeo, stone, 5)
-    for (let i = 0; i < 5; i++) {
-      const s = i === 2 ? royalW / sideW : 1
-      dummy.position.set(openingXs[i], oh + 0.48, faceZ - 0.35)
-      dummy.scale.set(s, 1, 1)
-      dummy.updateMatrix()
-      lintels.setMatrixAt(i, dummy.matrix)
-      dummy.scale.set(1, 1, 1)
-    }
-    lintels.instanceMatrix.needsUpdate = true
-    g.add(lintels)
-  } else {
-    // LOD0: full jambs + lintels + royal cheeks
-    for (let i = 0; i < 5; i++) {
-      const ow = i === 2 ? royalW : sideW
-      const recess = new THREE.Mesh(new THREE.BoxGeometry(ow, oh, A * 0.92), wood)
-      recess.position.set(openingXs[i], oh / 2 + 0.15, barZ)
-      g.add(recess)
-
-      const jambGeo = new THREE.BoxGeometry(0.35, oh + 0.3, A * 0.5)
-      for (const side of [-1, 1] as const) {
-        const jamb = new THREE.Mesh(jambGeo, stone)
-        jamb.position.set(openingXs[i] + side * (ow / 2 + 0.15), oh / 2 + 0.15, faceZ - 0.4)
-        g.add(jamb)
-      }
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(ow + 1.0, 0.55, A * 0.55), stone)
-      lintel.position.set(openingXs[i], oh + 0.5, faceZ - 0.35)
-      g.add(lintel)
-
-      if (i === 2) {
-        const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.1, 2.2), stone)
-        for (const side of [-1, 1] as const) {
-          const c = cheek.clone()
-          c.position.set(openingXs[i] + side * (ow / 2 + 0.8), 0.55, faceZ + 1.4)
-          g.add(c)
-        }
-      }
-    }
+    addLod2Mass(g, brick, stone, W, A, H, L, openings)
+    return g
   }
 
-  addSteps(g, lod, openingXs, faceZ, H)
-  if (lod < 2) addBalustrade(g, lod, W, D, A, deckY + deckT)
+  const barGeo = buildNgoMonBarGeo(lod)
+  if (barGeo) {
+    const bar = new THREE.Mesh(barGeo, brick)
+    bar.name = 'u-bar'
+    bar.position.set(0, 0, L.barZ)
+    bar.castShadow = true
+    bar.receiveShadow = true
+    g.add(bar)
+  }
+
+  const armPathE = [
+    new THREE.Vector3(L.armX, 0, L.barSouthZ + 0.04),
+    new THREE.Vector3(L.armX, 0, D / 2),
+  ]
+  const armPathW = [
+    new THREE.Vector3(-L.armX, 0, L.barSouthZ + 0.04),
+    new THREE.Vector3(-L.armX, 0, D / 2),
+  ]
+  for (const [path, name] of [
+    [armPathE, 'u-arm-e'],
+    [armPathW, 'u-arm-w'],
+  ] as const) {
+    const geo = extrudeWallGeometry({
+      path,
+      height: H,
+      thickness: A,
+      crenellation: false,
+      lod,
+      tile: uvRepeat('gachVo'),
+    })
+    const mesh = new THREE.Mesh(geo, brick)
+    mesh.name = name
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    g.add(mesh)
+  }
+
+  const plinthH = 0.52
+  const plinth = mergeOrNull([
+    meterBox(W + 0.95, plinthH, A + 0.55, 0, plinthH / 2, L.barZ, 'daThanh'),
+    meterBox(A + 0.55, plinthH, L.armLen + 0.25, L.armX, plinthH / 2, L.armCenterZ, 'daThanh'),
+    meterBox(A + 0.55, plinthH, L.armLen + 0.25, -L.armX, plinthH / 2, L.armCenterZ, 'daThanh'),
+  ])
+  if (plinth) {
+    const m = new THREE.Mesh(plinth, stone)
+    m.name = 'u-plinth'
+    m.castShadow = true
+    m.receiveShadow = true
+    g.add(m)
+  }
+
+  // Khe 3 cm — tránh z-fight mặt trên đài / sàn (chớp trắng khi orbit).
+  const deckY = H + 0.03 + deckT / 2
+  const deck = mergeOrNull([
+    meterBox(W, deckT, A, 0, deckY, L.barZ, 'gachBatTrang'),
+    meterBox(A, deckT, L.armLen, L.armX, deckY, L.armCenterZ, 'gachBatTrang'),
+    meterBox(A, deckT, L.armLen, -L.armX, deckY, L.armCenterZ, 'gachBatTrang'),
+  ])
+  if (deck) {
+    const m = new THREE.Mesh(deck, tile)
+    m.name = 'u-deck'
+    m.receiveShadow = true
+    g.add(m)
+  }
+
+  const court = meterBox(L.courtW - 0.35, 0.1, L.courtD - 0.25, 0, 0.05, L.armCenterZ, 'gachVo')
+  const courtMesh = new THREE.Mesh(court, brick)
+  courtMesh.name = 'u-court'
+  courtMesh.receiveShadow = true
+  g.add(courtMesh)
+
+  const dressing = archDressingGeo(openings, A, lod)
+  if (dressing) {
+    const m = new THREE.Mesh(dressing, stone)
+    m.name = 'u-arch-dressing'
+    m.position.set(0, 0, L.barZ)
+    g.add(m)
+  }
+
+  addThresholds(g, lod, openings, L, A, stone)
+  addDragonSteps(g, lod, L, stone)
+  addSideThresholds(g, lod, openings, L, stone)
+  addDeckStairs(g, lod, L, H, stone)
+  addPhapLamOnBar(g, lod, openings, L, lam)
+  addBalustrade(g, lod, W, D, A, H + deckT, L)
 
   return g
 }
 
-function addSteps(
+function addLod2Mass(
   g: THREE.Group,
-  lod: 0 | 1 | 2,
-  xs: number[],
-  faceZ: number,
-  platformH: number,
+  brick: THREE.Material,
+  stone: THREE.Material,
+  W: number,
+  A: number,
+  H: number,
+  L: ReturnType<typeof ngoMonLayout>,
+  openings: ReturnType<typeof ngoMonOpenings>,
 ): void {
-  const stone = getMaterial('da_thanh', lod)
-  const tile = getMaterial('gach_bat_trang', lod)
-  const sideW = NGO_MON.openingWSide
-  const royalW = NGO_MON.openingWRoyal
-
-  if (lod === 2) {
-    // Single royal stair block
-    const block = new THREE.Mesh(new THREE.BoxGeometry(royalW + 1, platformH * 0.35, 2.2), stone)
-    block.position.set(0, platformH * 0.175, faceZ + 1.4)
-    g.add(block)
-    return
-  }
-
-  if (lod === 1) {
-    // Royal: 4 steps; sides: 1 ramp each via InstancedMesh
-    const stepCount = 4
-    const stepDepth = 0.55
-    for (let s = 0; s < stepCount; s++) {
-      const y = ((s + 0.5) / stepCount) * (platformH * 0.4)
-      const step = new THREE.Mesh(
-        new THREE.BoxGeometry(royalW + 1.0, platformH * 0.4 / stepCount + 0.06, stepDepth),
-        stone,
-      )
-      step.position.set(0, y, faceZ + 0.5 + stepDepth * (stepCount - s - 0.5))
-      step.receiveShadow = true
-      g.add(step)
-    }
-    const rampGeo = new THREE.BoxGeometry(sideW + 0.3, platformH * 0.28, 1.8)
-    const ramps = new THREE.InstancedMesh(rampGeo, tile, 4)
-    const dummy = new THREE.Object3D()
-    let idx = 0
-    for (let i = 0; i < 5; i++) {
-      if (i === 2) continue
-      dummy.position.set(xs[i], platformH * 0.14, faceZ + 1.2)
-      dummy.updateMatrix()
-      ramps.setMatrixAt(idx++, dummy.matrix)
-    }
-    ramps.instanceMatrix.needsUpdate = true
-    g.add(ramps)
-
-    // Broad approach into courtyard
-    const broad = new THREE.Mesh(
-      new THREE.BoxGeometry(NGO_MON.width - 2 * NGO_MON.armThickness - 2, 0.5, 1.6),
-      tile,
+  const bar = new THREE.Mesh(meterBox(W, H, A, 0, H / 2, L.barZ, 'gachVo'), brick)
+  bar.name = 'u-bar'
+  g.add(bar)
+  for (const sx of [-1, 1] as const) {
+    const arm = new THREE.Mesh(
+      meterBox(A, H, L.armLen, sx * L.armX, H / 2, L.armCenterZ, 'gachVo'),
+      brick,
     )
-    broad.position.set(0, 0.25, NGO_MON.depth / 2 + 0.9)
-    g.add(broad)
-    return
+    arm.name = sx < 0 ? 'u-arm-w' : 'u-arm-e'
+    g.add(arm)
+  }
+  const holeGeo = new THREE.BoxGeometry(3.2, 4.6, A + 0.4)
+  const holes = new THREE.InstancedMesh(holeGeo, stone, 5)
+  holes.name = 'u-arch-marks'
+  const dummy = new THREE.Object3D()
+  openings.forEach((o, i) => {
+    dummy.position.set(o.x, o.hh * 0.48, L.barZ)
+    dummy.scale.set((o.hw * 2) / 3.2, o.hh / 4.6, 1)
+    dummy.updateMatrix()
+    holes.setMatrixAt(i, dummy.matrix)
+  })
+  holes.instanceMatrix.needsUpdate = true
+  g.add(holes)
+  const tile = getMaterial('gach_bat_trang', 2)
+  const deck = mergeOrNull([
+    meterBox(W * 0.98, 0.28, A * 0.95, 0, H + 0.14, L.barZ, 'gachBatTrang'),
+    meterBox(A * 0.95, 0.28, L.armLen * 0.98, L.armX, H + 0.14, L.armCenterZ, 'gachBatTrang'),
+    meterBox(A * 0.95, 0.28, L.armLen * 0.98, -L.armX, H + 0.14, L.armCenterZ, 'gachBatTrang'),
+  ])
+  if (deck) {
+    const m = new THREE.Mesh(deck, tile)
+    m.name = 'u-deck'
+    g.add(m)
+  }
+}
+
+function addThresholds(
+  g: THREE.Group,
+  lod: Lod,
+  openings: ReturnType<typeof ngoMonOpenings>,
+  L: ReturnType<typeof ngoMonLayout>,
+  A: number,
+  stone: THREE.Material,
+): void {
+  const parts = openings.map((o, i) => {
+    const w = o.hw * 2 + (i === 2 ? 0.55 : 0.25)
+    const h = i === 2 ? 0.22 : 0.14
+    return meterBox(w, h, A + 0.55, o.x, h / 2, L.barZ, 'daThanh')
+  })
+  const geo = mergeOrNull(parts)
+  if (!geo) return
+  const m = new THREE.Mesh(geo, stone)
+  m.name = 'u-thresholds'
+  m.receiveShadow = lod < 2
+  g.add(m)
+}
+
+function addDragonSteps(
+  g: THREE.Group,
+  lod: Lod,
+  L: ReturnType<typeof ngoMonLayout>,
+  stone: THREE.Material,
+): void {
+  const royal = NGO_MON.openingWRoyal + 1.15
+  const stepN = lod === 0 ? 6 : 4
+  const rise = 1.05
+  const tread = 0.48
+  const parts: THREE.BufferGeometry[] = []
+  for (const toward of [1, -1] as const) {
+    const faceZ = toward > 0 ? L.barSouthZ : L.barNorthZ
+    for (let s = 0; s < stepN; s++) {
+      const h = ((s + 1) / stepN) * rise
+      const z = faceZ + toward * (tread * (s + 0.5) + 0.08)
+      parts.push(meterBox(royal, h, tread, 0, h / 2, z, 'daThanh'))
+    }
+    const run = tread * stepN
+    const cheekH = rise * 0.62
+    const cheekZ = faceZ + toward * (run * 0.5 + 0.08)
+    parts.push(meterBox(0.28, cheekH, run + 0.12, -royal / 2 - 0.12, cheekH / 2, cheekZ, 'daThanh'))
+    parts.push(meterBox(0.28, cheekH, run + 0.12, royal / 2 + 0.12, cheekH / 2, cheekZ, 'daThanh'))
+  }
+  const geo = mergeOrNull(parts)
+  if (geo) {
+    const m = new THREE.Mesh(geo, stone)
+    m.name = 'u-royal-steps'
+    m.receiveShadow = true
+    g.add(m)
   }
 
-  // LOD0: full 6-step flights per opening + broad stair
-  const stepCount = 6
-  const stepDepth = 0.55
-  for (let i = 0; i < 5; i++) {
-    const sw = (i === 2 ? royalW : sideW) + (i === 2 ? 1.2 : 0.4)
-    const mat = i === 2 ? stone : tile
-    for (let s = 0; s < stepCount; s++) {
-      const y = ((s + 0.5) / stepCount) * (platformH * 0.42)
-      const step = new THREE.Mesh(
-        new THREE.BoxGeometry(sw, platformH * 0.42 / stepCount + 0.05, stepDepth),
-        mat,
-      )
-      step.position.set(xs[i], y, faceZ + 0.6 + stepDepth * (stepCount - s - 0.5))
-      step.receiveShadow = true
-      g.add(step)
+  const dgeo = dragonOrnamentGeo(0.48, lod === 0 ? 0 : 1)
+  if (!dgeo) return
+  const gold = getMaterial('vang_thep', lod)
+  const faceZ = L.barSouthZ
+  const run = tread * stepN
+  const pitch = Math.atan2(rise, run)
+  for (const side of [-1, 1] as const) {
+    const d = new THREE.Mesh(dgeo, gold)
+    d.name = side < 0 ? 'rong-bac-trai' : 'rong-bac-phai'
+    d.castShadow = true
+    d.position.set(side * (royal * 0.5 + 0.1), rise * 0.28, faceZ + run * 0.4)
+    d.rotation.set(-pitch * 0.4, side < 0 ? 0 : Math.PI, side * 0.12)
+    g.add(d)
+  }
+}
+
+function addSideThresholds(
+  g: THREE.Group,
+  lod: Lod,
+  openings: ReturnType<typeof ngoMonOpenings>,
+  L: ReturnType<typeof ngoMonLayout>,
+  stone: THREE.Material,
+): void {
+  const stepN = lod === 0 ? 4 : 3
+  const rise = 0.62
+  const tread = 0.4
+  const parts: THREE.BufferGeometry[] = []
+  for (let i = 0; i < openings.length; i++) {
+    if (i === 2) continue
+    const o = openings[i]
+    const w = o.hw * 2 + 0.35
+    for (const toward of [1, -1] as const) {
+      const faceZ = toward > 0 ? L.barSouthZ : L.barNorthZ
+      for (let s = 0; s < stepN; s++) {
+        const h = ((s + 1) / stepN) * rise
+        const z = faceZ + toward * (tread * (s + 0.5))
+        parts.push(meterBox(w, h, tread, o.x, h / 2, z, 'daThanh'))
+      }
     }
   }
-  for (let s = 0; s < 5; s++) {
-    const h = 0.22
-    const step = new THREE.Mesh(
-      new THREE.BoxGeometry(NGO_MON.width - 2 * NGO_MON.armThickness - 2, h, 0.6),
-      tile,
-    )
-    step.position.set(0, h / 2 + s * h, NGO_MON.depth / 2 + 0.4 + s * 0.55)
-    step.receiveShadow = true
-    g.add(step)
+  const geo = mergeOrNull(parts)
+  if (!geo) return
+  const m = new THREE.Mesh(geo, stone)
+  m.name = 'u-side-steps'
+  m.receiveShadow = true
+  g.add(m)
+}
+
+/** Cầu thang đá sát mặt trong hai cánh sân → mặt đài. [ước lượng hợp lý] bậc stylized. */
+function addDeckStairs(
+  g: THREE.Group,
+  lod: Lod,
+  L: ReturnType<typeof ngoMonLayout>,
+  H: number,
+  stone: THREE.Material,
+): void {
+  const stepN = lod === 0 ? 16 : 12
+  const tread = 0.44
+  const run = tread * stepN
+  const stairW = 2.7
+  const parts: THREE.BufferGeometry[] = []
+  for (const sx of [-1, 1] as const) {
+    const x = sx * (L.courtW / 2 - stairW / 2 - 0.22)
+    for (let s = 0; s < stepN; s++) {
+      const h = ((s + 1) / stepN) * H
+      const z = L.barSouthZ + tread * (s + 0.5)
+      parts.push(meterBox(stairW, h, tread, x, h / 2, z, 'daThanh'))
+    }
+    const cheekH = H * 0.52
+    const cheekZ = L.barSouthZ + run / 2
+    parts.push(meterBox(0.2, cheekH, run + 0.1, x - sx * (stairW / 2 + 0.1), cheekH / 2, cheekZ, 'daThanh'))
   }
+  const geo = mergeOrNull(parts)
+  if (!geo) return
+  const m = new THREE.Mesh(geo, stone)
+  m.name = 'u-deck-stairs'
+  m.receiveShadow = true
+  m.castShadow = lod === 0
+  g.add(m)
+}
+
+function addPhapLamOnBar(
+  g: THREE.Group,
+  lod: Lod,
+  openings: ReturnType<typeof ngoMonOpenings>,
+  L: ReturnType<typeof ngoMonLayout>,
+  lam: THREE.Material,
+): void {
+  const faceZ = L.barSouthZ + 0.06
+  const panelW = 3.05
+  const panelH = lod === 0 ? 0.95 : 0.78
+  const geo = new THREE.BoxGeometry(panelW, panelH, 0.07)
+  scaleBoxUvToMeters(geo, panelW, panelH, 0.07, uvRepeat('phapLam'))
+  const inst = new THREE.InstancedMesh(geo, lam, openings.length)
+  inst.name = 'u-phap-lam-panels'
+  inst.castShadow = lod === 0
+  const dummy = new THREE.Object3D()
+  openings.forEach((o, i) => {
+    dummy.position.set(o.x, o.hh + 1.15, faceZ)
+    dummy.updateMatrix()
+    inst.setMatrixAt(i, dummy.matrix)
+  })
+  inst.instanceMatrix.needsUpdate = true
+  g.add(inst)
+
+  const strip = new THREE.Mesh(
+    meterBox(38, 0.22, 0.06, 0, NGO_MON.bodyHeight - 0.72, faceZ + 0.02, 'phapLam'),
+    lam,
+  )
+  strip.name = 'u-phap-lam-strip'
+  g.add(strip)
+
+  if (lod === 0) {
+    const band = hoiVanBandGeo(Math.min(22, NGO_MON.width * 0.38), 0.26, 0.04, 0)
+    if (band) {
+      const gold = getMaterial('vang_thep', lod)
+      const m = new THREE.Mesh(band, gold)
+      m.name = 'u-hoi-van'
+      m.position.set(0, NGO_MON.bodyHeight - 0.7, faceZ + 0.04)
+      g.add(m)
+    }
+  }
+}
+
+function conTienGeo(h: number, lod: 0 | 1): THREE.BufferGeometry {
+  const s = h / 0.72
+  const pts = [
+    new THREE.Vector2(0.001, 0),
+    new THREE.Vector2(0.06 * s, 0.014 * s),
+    new THREE.Vector2(0.048 * s, 0.07 * s),
+    new THREE.Vector2(0.086 * s, 0.22 * s),
+    new THREE.Vector2(0.046 * s, 0.38 * s),
+    new THREE.Vector2(0.066 * s, 0.5 * s),
+    new THREE.Vector2(0.04 * s, 0.62 * s),
+    new THREE.Vector2(0.056 * s, 0.7 * s),
+    new THREE.Vector2(0.001, 0.72 * s),
+  ]
+  const g = new THREE.LatheGeometry(pts, lod === 0 ? 8 : 6)
+  copyUvToUv2(g)
+  return g
 }
 
 function addBalustrade(
   g: THREE.Group,
-  lod: 0 | 1 | 2,
+  lod: Lod,
   W: number,
   D: number,
   A: number,
   y: number,
+  L: ReturnType<typeof ngoMonLayout>,
 ): void {
   const stone = getMaterial('da_thanh', lod)
-  const postH = lod === 0 ? 0.95 : 0.8
-  const postGeo = new THREE.BoxGeometry(0.16, postH, 0.16)
+  const railH = lod === 0 ? 0.72 : 0.64
   const positions: [number, number, number][] = []
+  const dense = lod === 0 ? 1.15 : 1.7
 
-  const innerZ = -D / 2 + A + 0.25
-  const innerCount = lod === 0 ? 18 : 10
-  for (let i = 0; i < innerCount; i++) {
-    const t = i / Math.max(1, innerCount - 1)
-    const x = -W / 2 + A + 0.4 + t * (W - 2 * A - 0.8)
-    positions.push([x, y, innerZ])
-  }
-
-  const tipZ = D / 2 - 0.3
-  for (const sx of [-1, 1] as const) {
-    const ax = sx * (W / 2 - A / 2)
-    const n = lod === 0 ? 6 : 3
+  const pushLine = (x0: number, z0: number, x1: number, z1: number) => {
+    const dx = x1 - x0
+    const dz = z1 - z0
+    const len = Math.hypot(dx, dz)
+    const n = Math.max(2, Math.floor(len / dense))
     for (let i = 0; i < n; i++) {
       const t = i / Math.max(1, n - 1)
-      positions.push([ax - A / 2 + 0.3 + t * (A - 0.6), y, tipZ])
+      positions.push([x0 + dx * t, y, z0 + dz * t])
     }
   }
 
-  if (lod === 0) {
-    for (const sx of [-1, 1] as const) {
-      const x = sx * (W / 2 - A - 0.2)
-      for (let i = 0; i < 8; i++) {
-        const t = i / 7
-        const z = -D / 2 + A + 0.5 + t * (D - A - 1)
-        positions.push([x, y, z])
-      }
-    }
-  }
+  const innerX = L.courtW / 2 - 0.18
+  const innerZ = L.barSouthZ + 0.22
+  const tipZ = D / 2 - 0.28
+  const northZ = L.barNorthZ + 0.22
+  const outerX = W / 2 - 0.22
+  const stairClear = 3.4
 
-  const posts = new THREE.InstancedMesh(postGeo, stone, positions.length)
-  posts.name = 'balustrade-posts'
+  pushLine(-innerX + stairClear, innerZ, innerX - stairClear, innerZ)
+  pushLine(innerX, innerZ + 7.2, innerX, tipZ)
+  pushLine(-innerX, innerZ + 7.2, -innerX, tipZ)
+  pushLine(L.armX - A / 2 + 0.25, tipZ, L.armX + A / 2 - 0.25, tipZ)
+  pushLine(-L.armX - A / 2 + 0.25, tipZ, -L.armX + A / 2 - 0.25, tipZ)
+  pushLine(-outerX, northZ, outerX, northZ)
+  pushLine(outerX, northZ, outerX, tipZ)
+  pushLine(-outerX, northZ, -outerX, tipZ)
+
+  if (positions.length === 0) return
+
+  const tien = new THREE.InstancedMesh(conTienGeo(railH, lod === 0 ? 0 : 1), stone, positions.length)
+  tien.name = 'u-con-tien'
   const dummy = new THREE.Object3D()
   positions.forEach((p, i) => {
-    dummy.position.set(p[0], p[1] + postH / 2, p[2])
+    dummy.position.set(p[0], p[1], p[2])
     dummy.updateMatrix()
-    posts.setMatrixAt(i, dummy.matrix)
+    tien.setMatrixAt(i, dummy.matrix)
   })
-  posts.instanceMatrix.needsUpdate = true
-  g.add(posts)
+  tien.instanceMatrix.needsUpdate = true
+  g.add(tien)
 
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(W - 2 * A - 0.6, 0.1, 0.12), stone)
-  rail.position.set(0, y + postH, innerZ)
-  g.add(rail)
+  const railY = y + railH + 0.03
+  const rails = mergeOrNull([
+    meterBox(L.courtW - 0.5, 0.08, 0.1, 0, railY, innerZ, 'daThanh'),
+    meterBox(0.1, 0.08, L.courtD - 0.4, innerX, railY, L.armCenterZ, 'daThanh'),
+    meterBox(0.1, 0.08, L.courtD - 0.4, -innerX, railY, L.armCenterZ, 'daThanh'),
+    meterBox(W - 0.5, 0.08, 0.1, 0, railY, northZ, 'daThanh'),
+  ])
+  if (rails) {
+    const m = new THREE.Mesh(rails, stone)
+    m.name = 'u-rails'
+    g.add(m)
+  }
 }

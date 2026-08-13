@@ -230,3 +230,7 @@ Repeat metres = **[ước lượng hợp lý]**. Kit (`buildWall` / `buildRoof` 
 **Stretch đã ship:** `MeshPhysicalMaterial` clearcoat men ngói / pháp lam / Bát Tràng ở LOD0. `applyWetness(0..1)` — AtmosphereSystem gọi khi `raining`.
 
 **API phiên sau phải dùng:** `getMaterial` luôn có `map`; texture mới đi qua `getTextureSet` / factory, không `new MeshStandardMaterial({ color })`.
+
+### 9.1 Terrain splat (phiên 4)
+
+Heightfield không còn tint cỏ phẳng. Vertex color = trọng số `(brick, dirt, grass)` mẫu `gachBatTrang` / `dat` / `co` qua `createTerrainMaterial`. UV = mét thế giới / 8 m (cycle cỏ). Không thêm material id mới.

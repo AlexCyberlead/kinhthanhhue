@@ -11,4 +11,5 @@ export const cungModules: MonumentModule[] = [cungDienTho, cungTruongSanh, dienP
 
 export { cungDienTho, cungTruongSanh, dienPhungTien }
 export { buildCungComplex } from './buildCungComplex'
+export { buildCungCompound } from './buildCungCompound'
 export { countDrawCalls } from './countDrawCalls'

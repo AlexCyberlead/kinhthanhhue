@@ -1,5 +1,6 @@
 import type { MonumentModule } from '../../core/types/MonumentModule'
 import { buildCitadelGate, type CitadelGateStyle } from './buildCitadelGate'
+import { buildThuyQuan } from './buildThuyQuan'
 
 type GateDef = {
   id: string
@@ -188,3 +189,48 @@ function toModule(def: GateDef): MonumentModule {
 export const citadelGateModules: MonumentModule[] = GATE_DEFS.map(toModule)
 
 export const citadelGateIds = GATE_DEFS.map((d) => d.id)
+
+const THUY_QUAN_DEFS: Array<{
+  id: string
+  displayName: { vi: string; en: string }
+  anchor: [number, number, number]
+  rotationY: number
+  poi: { vi: string; en: string; year?: string }
+}> = [
+  {
+    id: 'dong-thanh-thuy-quan',
+    displayName: { vi: 'Đông Thành Thủy Quan', en: 'East Water Gate' },
+    anchor: [1100, 0, -200],
+    rotationY: 1.5708,
+    poi: {
+      vi: 'Đông Thành Thủy Quan — cửa thủy đầu đông Ngự Hà, cống xuyên thành khác cửa bộ. Anchor [ước lượng].',
+      en: 'East Water Gate — culvert on the eastern Ngự Hà, distinct from pedestrian gates. Anchor [estimated].',
+      year: '1805',
+    },
+  },
+  {
+    id: 'tay-thanh-thuy-quan',
+    displayName: { vi: 'Tây Thành Thủy Quan', en: 'West Water Gate' },
+    anchor: [-1100, 0, -80],
+    rotationY: -1.5708,
+    poi: {
+      vi: 'Tây Thành Thủy Quan — cửa thủy đầu tây Ngự Hà. Anchor [ước lượng].',
+      en: 'West Water Gate — culvert on the western Ngự Hà. Anchor [estimated].',
+      year: '1805',
+    },
+  },
+]
+
+export const thuyQuanModules: MonumentModule[] = THUY_QUAN_DEFS.map((def) => ({
+  id: def.id,
+  displayName: def.displayName,
+  anchor: def.anchor,
+  rotationY: def.rotationY,
+  boundingRadius: 25,
+  poi: def.poi,
+  build(lod) {
+    const g = buildThuyQuan(lod)
+    g.name = def.id
+    return g
+  },
+}))

@@ -25,6 +25,9 @@ export const hungMieu: MonumentModule = {
       roofMaterial: 'ngoi_thanh_luu_ly',
       scale: 1,
       courtyard: true,
+      courtyardWidth: 38,
+      courtyardDepth: 34,
+      sideHalls: true,
       lod,
     })
   },

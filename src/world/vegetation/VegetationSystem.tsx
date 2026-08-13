@@ -86,7 +86,7 @@ function SpeciesLayer({ data, enableWind, materialsRef }: SpeciesLayerProps) {
           args={[nearGeo, nearMat, nearCount]}
           castShadow={def.height > 2}
           receiveShadow
-          frustumCulled
+          frustumCulled={false}
         />
       )}
       {data.far.length > 0 && (
@@ -95,7 +95,7 @@ function SpeciesLayer({ data, enableWind, materialsRef }: SpeciesLayerProps) {
           args={[farGeo, farMat, farCount]}
           castShadow={false}
           receiveShadow
-          frustumCulled
+          frustumCulled={false}
         />
       )}
     </group>

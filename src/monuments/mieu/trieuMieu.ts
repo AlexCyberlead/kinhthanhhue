@@ -25,6 +25,9 @@ export const trieuMieu: MonumentModule = {
       roofMaterial: 'ngoi_thanh_luu_ly',
       scale: 0.95,
       courtyard: true,
+      courtyardWidth: 36,
+      courtyardDepth: 32,
+      sideHalls: true,
       lod,
     })
   },

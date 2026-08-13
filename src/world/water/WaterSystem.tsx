@@ -3,11 +3,12 @@ import { useFrame } from '@react-three/fiber'
 import { useAppStore } from '../../state/appStore'
 import { createWaterMaterial } from './createWaterMaterial'
 import { createWaterMeshes } from './buildWaterMeshes'
+import { buildThaiDichLotus, buildTinhTamLotus } from './buildLotusField'
 
 /**
- * Wave A / A5 — Ngự Hà + Hồ Tịnh Tâm + Hồ Thái Dịch.
+ * Ngự Hà + Hồ Tịnh Tâm + Hồ Thái Dịch + Ngoại Kim Thủy.
  * Shared ShaderMaterial (fresnel / waves / fake reflection / rain ripples).
- * Draw calls: 3 meshes ≤ 4 budget.
+ * Draw calls: 5 water meshes + 2 lotus groups.
  */
 export function WaterSystem() {
   const raining = useAppStore((s) => s.raining)
@@ -16,6 +17,8 @@ export function WaterSystem() {
     () => createWaterMeshes(handle.material),
     [handle.material],
   )
+  const lotus = useMemo(() => buildThaiDichLotus(1), [])
+  const tinhLotus = useMemo(() => buildTinhTamLotus(1), [])
 
   useEffect(() => {
     handle.setRaining(raining)
@@ -35,8 +38,12 @@ export function WaterSystem() {
   return (
     <group name="WaterSystem">
       <primitive object={meshes.thaiDich} />
+      <primitive object={lotus} />
+      <primitive object={tinhLotus} />
       <primitive object={meshes.tinhTam} />
       <primitive object={meshes.nguHa} />
+      <primitive object={meshes.ngoaiKimThuy} />
+      <primitive object={meshes.noiKimThuy} />
     </group>
   )
 }
